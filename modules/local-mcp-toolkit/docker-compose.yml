@@ -1,0 +1,9 @@
+services:
+  mcp:
+    build: .
+    command: python -m src.cli serve --server combined
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/app/data
+      - ./examples:/app/examples:ro

@@ -1,0 +1,11 @@
+[
+  {
+    "name": "default",
+    "description": "Demo local knowledge base"
+  },
+  {
+    "name": "academic",
+    "description": "Academic notes and MCP/RAG materials"
+  }
+]
+

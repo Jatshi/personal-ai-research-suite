@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personal-ai-workspace"
+version = "0.1.0"
+description = "Local-first personal AI workspace with RAG, LLM tool planning, FastAPI, Streamlit, MCP-like tools, safety, and observability."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Personal AI Workspace Maintainers" }]
+license = { text = "MIT" }
+keywords = ["rag", "llm", "agent", "streamlit", "fastapi", "mcp", "local-first"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "streamlit>=1.36.0",
+  "fastapi>=0.111.0",
+  "uvicorn>=0.30.0",
+  "PyYAML>=6.0.1",
+  "beautifulsoup4>=4.12.3",
+  "pypdf>=4.2.0",
+  "python-docx>=1.1.2",
+  "python-pptx>=0.6.23",
+  "openai>=1.40.0",
+  "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+production = ["chromadb>=0.5.0"]
+dev = ["pytest>=8.2.0"]
+
+[project.scripts]
+personal-ai-workspace = "personal_ai_workspace.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["personal_ai_workspace*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

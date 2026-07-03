@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-mcp-toolkit"
+version = "0.1.0"
+description = "Local MCP-style toolkit for safe filesystem access, RAG bridging, code intelligence, audit logs, and MCP-compatible tool serving."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Local MCP Toolkit Maintainers" }]
+license = { text = "MIT" }
+keywords = ["mcp", "tools", "rag", "filesystem", "code-intelligence", "local-first"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = ["pyyaml>=6.0"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.9.0"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+local-mcp-toolkit = "local_mcp_toolkit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["local_mcp_toolkit*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

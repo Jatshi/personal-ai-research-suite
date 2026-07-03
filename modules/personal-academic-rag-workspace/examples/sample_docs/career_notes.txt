@@ -1,0 +1,4 @@
+The sound target detection project can be described as an AI infrastructure and applied machine learning system.
+It includes model evaluation, edge deployment, real-time inference, reliability testing, and reproducible reporting.
+These materials are useful for resume bullets, project interviews, and academic defense preparation.
+

@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    command: uvicorn src.api.fastapi_app:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./config.production.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+      - ./examples:/app/examples:ro
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    command: streamlit run app/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./config.production.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+      - ./examples:/app/examples:ro

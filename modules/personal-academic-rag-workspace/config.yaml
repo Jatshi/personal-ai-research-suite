@@ -1,0 +1,40 @@
+app:
+  name: personal-academic-rag-workspace
+  workspace_dir: ./data
+
+chunking:
+  chunk_size: 800
+  chunk_overlap: 120
+
+retrieval:
+  default_mode: hybrid
+  top_k: 5
+  bm25_weight: 0.4
+  vector_weight: 0.6
+  rerank_top_k: 10
+  min_confidence: 0.35
+
+embedding:
+  backend: mock
+  model_name: mock-embedding
+  dimension: 384
+  api_key_env: OPENAI_API_KEY
+  base_url:
+  timeout: 60
+
+llm:
+  backend: mock
+  model_name: mock-llm
+  temperature: 0.2
+  max_tokens: 1000
+  api_key_env: OPENAI_API_KEY
+  base_url:
+  timeout: 60
+
+academic:
+  enable_section_detection: true
+  enable_metadata_extraction: true
+
+logging:
+  level: INFO
+  log_file: ./data/logs/app.log

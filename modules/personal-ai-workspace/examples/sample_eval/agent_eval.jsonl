@@ -1,0 +1,2 @@
+{"goal":"根据本周笔记和 todo 生成周报","expected_tools":["search_kb","generate_weekly_report"],"should_require_confirmation":false}
+

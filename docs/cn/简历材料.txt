@@ -1,0 +1,39 @@
+可以把这个统一项目包装成：
+
+# 项目名称建议
+
+**ScholarMind AgentS：面向个人科研工作流的本地 RAG + AI Agent + MCP 智能工作台**
+
+我更推荐第一个：**ScholarMind Agent**。它听起来完整、有辨识度，也能覆盖“学术知识库、博士论文、论文阅读、Agent 工作流、MCP 工具生态”。
+
+# 简历项目介绍
+
+**ScholarMind Agent：面向个人科研工作流的本地 RAG + AI Agent + MCP 智能工作台**
+
+设计并实现 ScholarMind Agent，一个面向博士论文收尾、学术文献管理、个人知识库问答和本地 AI Agent 工作流的综合型智能工作台。项目采用 Python、Streamlit、FastAPI、SQLite、Chroma、BM25、OpenAI-compatible LLM/Embedding API 和 MCP-style Tool Calling 架构，整合了本地学术 RAG、个人 Agent 工作流、Personal AI Workspace 和 MCP 工具网关四个子系统，支持多格式文档解析、混合检索、重排序、引用溯源、证据校验、安全工具调用和外部 AI 客户端接入。
+
+项目支持 PDF、Word、PPT、Markdown、TXT 等多格式材料导入，可对博士论文、论文笔记、会议记录、简历、项目材料和文献资料进行本地建库。系统实现了 BM25 关键词检索、向量语义检索、Hybrid Search、规则 Reranker、confidence score 和 citation grounding，能够在问答时返回可追溯的文件名、页码/段落和 chunk_id，并在证据不足时拒答，降低 RAG 幻觉风险。
+
+在 Agent 层，项目实现了本地文件整理 Agent、博士论文收尾检查 Agent、多 Agent 论文阅读工作流和个人工作助理 Agent。系统通过统一 Tool Registry 管理工具能力，支持 dry-run、安全路径限制、Human-in-the-loop 审批、文件操作 audit log 和 rollback 记录，能够完成文件扫描、重复文件识别、重命名建议、论文结构检查、图表/参考文献编号检查、论文阅读笔记生成、日报/周报生成和任务规划等工作流。
+
+项目进一步实现了 MCP-style 本地工具网关，将知识库检索、问答、文件系统操作和代码仓库分析能力暴露为结构化工具，便于接入 Claude Desktop、IDE Agent 或其他 MCP-compatible 客户端。系统提供 Streamlit UI、CLI、FastAPI 服务、Docker/CI 配置、生产级 config、OpenAI-compatible API 接入、Mock 离线模式、测试集和中英文使用/开发文档，形成可本地运行、可扩展、可公开发布到 GitHub 的完整 AI Agent 工程项目。
+
+# 简历 bullet 版本
+
+- 设计并实现 **ScholarMind Agent**，一个面向个人科研工作流的本地 RAG + AI Agent + MCP 智能工作台，覆盖博士论文收尾、文献阅读、知识库问答、文件整理和任务规划等场景。
+- 构建多格式文档解析与知识库索引链路，支持 PDF、Word、PPT、Markdown、TXT 导入，基于 SQLite 保存 metadata，使用 Chroma 向量库、BM25 和 Hybrid Search 实现高质量检索。
+- 实现 grounded RAG 问答链路，包含 chunking、semantic retrieval、keyword retrieval、reranking、confidence score、citation grounding 和 evidence sufficiency check，支持证据不足时拒答以降低幻觉风险。
+- 设计统一 LLM/Embedding 接口，支持 mock 离线模式与 OpenAI-compatible API 生产模式，可通过配置切换真实 LLM、embedding model 和本地/远程模型服务。
+- 实现本地 AI Agent 工作流系统，包含 File Organizer Agent、Thesis Finishing Agent、Paper Reading Multi-Agent Workflow 和 Work Assistant Agent，支持工具调用、状态管理和任务报告生成。
+- 设计安全 Tool Calling 框架，通过 Tool Registry、risk level、dry-run、Human-in-the-loop approval、workspace path restriction、audit log 和 rollback 机制控制高风险文件操作。
+- 实现 MCP-style 本地工具网关，将 RAG 检索问答、文件系统操作和代码仓库分析能力暴露为结构化工具，支持外部 AI 客户端调用。
+- 提供 Streamlit UI、CLI、FastAPI API、Docker/CI、生产配置、测试脚本和中英文文档，完成从 demo 到 GitHub-ready 工程项目的完整交付。
+
+# 面试时一句话介绍
+
+我做了一个叫 **ScholarMind Agent** 的本地科研智能体工作台，它把个人学术 RAG、AI Agent 工作流、MCP 工具调用和安全文件操作整合到一个系统里，可以把博士论文、文献、会议记录和项目材料建成本地知识库，并通过混合检索、重排、引用校验和多 Agent 工作流辅助论文收尾、文献阅读和日常科研管理。
+
+# 更短的简历版
+
+**ScholarMind AgentOS｜本地科研 RAG + AI Agent + MCP 智能工作台**  
+独立设计并实现面向个人科研工作流的本地 AI Agent 系统，整合学术 RAG、文件整理 Agent、博士论文检查 Agent、多 Agent 论文阅读工作流和 MCP-style 工具网关。系统支持 PDF/Word/PPT/Markdown/TXT 多格式材料解析，基于 Chroma、BM25、Hybrid Search 和 Reranker 实现高质量检索，并通过 citation grounding、evidence checker 和 confidence score 降低 RAG 幻觉风险。同时设计 Tool Registry、dry-run、Human-in-the-loop approval、audit log 和 rollback 机制，保障本地文件操作安全。项目提供 Streamlit UI、CLI、FastAPI、OpenAI-compatible API 接入、Docker/CI、测试和中英文文档，可作为完整 GitHub-ready AI Agent 工程项目运行。

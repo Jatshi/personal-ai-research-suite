@@ -1,0 +1,4 @@
+MCP means Model Context Protocol. It standardizes how AI clients discover and call tools. A local MCP server can expose search_kb, ask_kb, list_docs, summarize_doc, write_note, and generate_weekly_report as structured tools.
+
+The server should validate paths, block sensitive files, record audit logs, and return structured JSON results.
+

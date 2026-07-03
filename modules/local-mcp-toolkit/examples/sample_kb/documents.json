@@ -1,0 +1,29 @@
+[
+  {
+    "doc_id": "doc_rag_intro",
+    "title": "RAG Introduction",
+    "file_path": "examples/workspace/docs/rag_intro.md",
+    "collection": "default",
+    "doc_type": "markdown",
+    "created_at": "2026-07-01",
+    "updated_at": "2026-07-01",
+    "summary": "RAG combines retrieval over local evidence with answer generation and citations.",
+    "metadata": {
+      "tags": ["rag", "mcp"]
+    }
+  },
+  {
+    "doc_id": "doc_agent_notes",
+    "title": "Agent Safety Notes",
+    "file_path": "examples/workspace/docs/agent_notes.txt",
+    "collection": "academic",
+    "doc_type": "text",
+    "created_at": "2026-07-01",
+    "updated_at": "2026-07-01",
+    "summary": "Safe local agents use path restrictions, dry-run, confirmations, and audit logs.",
+    "metadata": {
+      "tags": ["agent", "safety"]
+    }
+  }
+]
+

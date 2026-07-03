@@ -1,0 +1,96 @@
+app:
+  name: personal-ai-workspace
+  workspace_dir: ./examples/sample_workspace
+  data_dir: ./data
+  mock_mode: true
+
+server:
+  enable_fastapi: true
+  host: 127.0.0.1
+  port: 8000
+  api_auth_enabled: false
+  api_token_env: PERSONAL_AI_API_TOKEN
+
+streamlit:
+  port: 8501
+
+chunking:
+  chunk_size: 800
+  chunk_overlap: 120
+
+retrieval:
+  default_mode: hybrid
+  top_k: 5
+  bm25_weight: 0.4
+  vector_weight: 0.6
+  rerank_top_k: 10
+  min_confidence: 0.25
+
+vector_store:
+  backend: sqlite
+  persist_dir: ./data/indexes/chroma
+  collection_prefix: personal_ai_workspace
+
+embedding:
+  backend: mock
+  model_name: mock-embedding
+  dimension: 384
+  api_key_env: OPENAI_API_KEY
+  base_url_env: OPENAI_BASE_URL
+  timeout_seconds: 60
+
+llm:
+  backend: mock
+  model_name: mock-llm
+  temperature: 0.2
+  max_tokens: 1200
+  api_key_env: OPENAI_API_KEY
+  base_url_env: OPENAI_BASE_URL
+  timeout_seconds: 60
+  system_prompt: >
+    You are a local personal AI workspace assistant. Answer only from the provided
+    evidence when evidence is provided. If evidence is insufficient, say so clearly.
+
+mcp:
+  enabled: true
+  server_name: personal-ai-workspace-mcp
+  transport: stdio
+  exposed_tools:
+    - search_kb
+    - ask_kb
+    - list_docs
+    - summarize_doc
+    - write_note
+    - generate_weekly_report
+
+agent:
+  enable_tool_calling: true
+  use_llm_planner: true
+  require_confirmation_for_write: true
+  max_steps: 8
+
+safety:
+  restrict_to_workspace: true
+  require_dry_run_for_write: true
+  require_confirmation_for_write: true
+  block_hidden_files: true
+  block_sensitive_files: true
+  allow_delete: false
+
+observability:
+  enable_trace: true
+  enable_llm_log: true
+  enable_tool_log: true
+  log_dir: ./data/logs
+
+evaluation:
+  default_eval_dataset: ./examples/sample_eval/rag_eval.jsonl
+  output_dir: ./data/exports/eval
+
+reading:
+  enable_url_import: true
+  enable_topic_clustering: true
+  default_collection: reading
+
+reporting:
+  default_report_output_dir: ./data/exports/reports

@@ -1,0 +1,75 @@
+app:
+  name: local-mcp-toolkit
+  mode: production
+  workspace_dir: ./examples/workspace
+  data_dir: ./data
+
+mcp:
+  server_name: local-mcp-toolkit
+  transport: stdio
+  enabled_servers:
+    - rag
+    - filesystem
+    - code
+
+rag:
+  backend: local_project
+  collections_dir: ./examples/sample_kb
+  project_path: ../personal-ai-workspace
+  project_config: config.production.yaml
+  default_collection: personal
+  min_confidence: 0.35
+
+filesystem:
+  allowed_extensions:
+    - .txt
+    - .md
+    - .json
+    - .yaml
+    - .yml
+    - .py
+    - .js
+    - .ts
+    - .html
+    - .css
+    - .csv
+  max_read_chars: 12000
+  allow_hidden_files: false
+  allow_delete: false
+  require_confirm_for_write: true
+
+code:
+  ignored_dirs:
+    - .git
+    - node_modules
+    - .venv
+    - venv
+    - __pycache__
+    - .mypy_cache
+    - .pytest_cache
+  allowed_code_extensions:
+    - .py
+    - .js
+    - .ts
+    - .tsx
+    - .jsx
+    - .java
+    - .cpp
+    - .c
+    - .h
+    - .md
+    - .yaml
+    - .json
+
+security:
+  block_path_traversal: true
+  block_symlink_escape: true
+  block_sensitive_files: true
+  block_hidden_dirs: true
+  enable_prompt_injection_scan: true
+  require_dry_run_for_write: true
+
+logging:
+  level: INFO
+  tool_call_log: ./data/logs/mcp_tool_calls.jsonl
+  security_audit_log: ./data/logs/security_audit.jsonl

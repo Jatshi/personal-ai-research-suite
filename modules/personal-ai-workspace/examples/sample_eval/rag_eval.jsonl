@@ -1,0 +1,4 @@
+{"question":"RAG 是什么？","expected_keywords":["retrieval","generation","evidence"],"expected_sources":["rag_intro.md"],"should_answer":true,"collection":"personal"}
+{"question":"Agent Harness 为什么需要 dry-run？","expected_keywords":["dry","confirmation","audit"],"expected_sources":["agent_harness_notes.md"],"should_answer":true,"collection":"personal"}
+{"question":"知识库中没有的火星基地预算是多少？","expected_keywords":[],"expected_sources":[],"should_answer":false,"collection":"personal"}
+

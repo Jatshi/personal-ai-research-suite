@@ -1,0 +1,16 @@
+.env
+**/.env
+**/.pytest_cache/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+**/data/logs/
+**/data/indexes/
+**/data/metadata/
+**/data/raw/
+**/workspace/
+**/.DS_Store
+**/node_modules/
+**/dist/
+**/build/

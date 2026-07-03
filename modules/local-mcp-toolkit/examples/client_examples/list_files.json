@@ -1,0 +1,2 @@
+{"method":"tools/call","tool":"list_files","arguments":{"path":".","recursive":true}}
+

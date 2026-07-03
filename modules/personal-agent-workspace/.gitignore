@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+data/logs/*.jsonl
+data/logs/*.log
+data/logs/rollback.jsonl
+data/exports/
+workspace/test_runs/

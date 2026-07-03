@@ -1,0 +1,21 @@
+[
+  {
+    "doc_id": "doc_rag_intro",
+    "title": "RAG Introduction",
+    "file_path": "examples/workspace/docs/rag_intro.md",
+    "chunk_id": "doc_rag_intro_001",
+    "collection": "default",
+    "text": "Retrieval augmented generation, or RAG, combines search over local evidence with answer generation. A safe MCP tool should expose search results, citations, confidence, and evidence sufficiency.",
+    "metadata": {"page": 1}
+  },
+  {
+    "doc_id": "doc_agent_notes",
+    "title": "Agent Safety Notes",
+    "file_path": "examples/workspace/docs/agent_notes.txt",
+    "chunk_id": "doc_agent_notes_001",
+    "collection": "academic",
+    "text": "Local agents need careful tool boundaries. Safe file access should use workspace restrictions, dry-run write operations, confirmation flags, and audit logs.",
+    "metadata": {"page": 1}
+  }
+]
+

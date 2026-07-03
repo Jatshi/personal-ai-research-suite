@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - personal-academic-rag-workspace
+          - personal-agent-workspace
+          - personal-ai-workspace
+          - local-mcp-toolkit
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        working-directory: modules/${{ matrix.module }}
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          if (Test-Path requirements-production.txt) {
+            python -m pip install -r requirements-production.txt
+          }
+          if (Test-Path pyproject.toml) {
+            python -m pip install -e ".[dev]"
+          }
+
+      - name: Run tests
+        working-directory: modules/${{ matrix.module }}
+        shell: pwsh
+        run: |
+          if (Test-Path run_tests.ps1) {
+            .\run_tests.ps1
+          } else {
+            python -m pytest -q
+          }
+
+  repository-hygiene:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check publish hygiene
+        shell: pwsh
+        run: .\scripts\pre_publish_check.ps1

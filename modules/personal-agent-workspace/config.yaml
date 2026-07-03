@@ -1,0 +1,72 @@
+app:
+  name: personal-agent-workspace
+  workspace_dir: ./workspace
+  data_dir: ./data
+  mock_mode: true
+
+llm:
+  backend: mock
+  model_name: mock-agent-llm
+  api_key_env: OPENAI_API_KEY
+  base_url:
+  temperature: 0.2
+  max_tokens: 1200
+  timeout: 60
+
+agents:
+  file_organizer:
+    enabled: true
+  thesis_finishing:
+    enabled: true
+  paper_reading:
+    enabled: true
+  work_assistant:
+    enabled: true
+
+safety:
+  require_confirmation_for_write: true
+  enable_dry_run: true
+  allow_delete: false
+  block_hidden_files: true
+  block_env_files: true
+  allow_paths_outside_workspace: false
+
+file_organizer:
+  allowed_extensions:
+    - .pdf
+    - .docx
+    - .pptx
+    - .md
+    - .txt
+    - .png
+    - .jpg
+    - .jpeg
+    - .py
+    - .ipynb
+    - .js
+    - .ts
+    - .html
+    - .css
+    - .java
+    - .cpp
+    - .c
+  duplicate_check:
+    use_hash: true
+    use_filename_similarity: true
+
+thesis:
+  export_markdown: true
+  export_json: true
+
+paper_reading:
+  output_dir: ./data/exports/paper_notes
+  use_multi_agent: true
+
+rag:
+  project_dir: ../personal-academic-rag-workspace
+
+logging:
+  level: INFO
+  log_dir: ./data/logs
+  tool_log_file: ./data/logs/tool_calls.jsonl
+  audit_log_file: ./data/logs/audit_log.jsonl

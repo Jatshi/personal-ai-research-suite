@@ -1,0 +1,2 @@
+Reading notes about Personal AI OS: combine RAG, Agent Harness, MCP server, weekly reports, reading collections, and observability.
+
