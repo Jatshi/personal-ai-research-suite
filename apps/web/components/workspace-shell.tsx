@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity, ArrowUpRight, Bot, BookOpen, CheckCircle2, ChevronRight, Database, FileCheck2,
-  Files, FolderInput, GitBranch, LayoutDashboard, ListTree, LoaderCircle, Moon, Network,
-  Search, Send, Settings, ShieldCheck, Sparkles, Sun, Wrench,
+  Files, FolderInput, GitBranch, LayoutDashboard, ListTree, LoaderCircle, Menu, Moon, Network,
+  Search, Send, Settings, ShieldCheck, Sparkles, Sun, Wrench, X,
 } from "lucide-react";
 import { api, sse, upload } from "@/lib/api";
 
@@ -21,18 +21,20 @@ const nav = [
 ] as const;
 
 export function WorkspaceShell({ view }: { view: string }) {
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(true); const [mobileNav, setMobileNav] = useState(false); const [palette, setPalette] = useState(false); const [paletteQuery, setPaletteQuery] = useState("");
   const [health, setHealth] = useState<Health | null>(null);
   useEffect(() => { api<Health>("/health").then(setHealth).catch(() => setHealth(null)); }, []);
+  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setPalette((open) => !open); } if (event.key === "Escape") { setPalette(false); setMobileNav(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
   const title = useMemo(() => nav.find(([id]) => id === view)?.[1] ?? "Dashboard", [view]);
+  const matchingNav = nav.filter(([, label]) => label.toLowerCase().includes(paletteQuery.toLowerCase()));
   return <main className={dark ? "app dark" : "app"}>
-    <aside className="sidebar"><div className="brand"><span className="brand-mark">S</span><span>ScholarMind</span><small>AgentOS</small></div>
-      <nav>{nav.map(([id, label, Icon]) => <Link className={id === view ? "nav-item active" : "nav-item"} href={`/${id}`} key={id}><Icon size={17}/><span>{label}</span></Link>)}</nav>
+    <aside className={mobileNav ? "sidebar mobile-open" : "sidebar"}><div className="brand"><span className="brand-mark">S</span><span>ScholarMind</span><small>AgentOS</small></div>
+      <nav>{nav.map(([id, label, Icon]) => <Link onClick={() => setMobileNav(false)} className={id === view ? "nav-item active" : "nav-item"} href={`/${id}`} key={id}><Icon size={17}/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-foot"><span className={health?.ok ? "status-dot" : "status-dot offline"}/>{health?.ok ? "API connected" : "API offline"}</div>
-    </aside>
-    <section className="workspace"><header className="topbar"><div><p className="eyebrow">PERSONAL RESEARCH SYSTEM</p><h1>{title}</h1></div><button className="icon-button" title="Toggle theme" onClick={() => setDark(!dark)}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></header>
+    </aside>{mobileNav && <button className="nav-backdrop" aria-label="Close navigation" onClick={() => setMobileNav(false)}/>} 
+    <section className="workspace"><header className="topbar"><div className="title-wrap"><button className="icon-button mobile-menu" title="Open navigation" onClick={() => setMobileNav(true)}><Menu size={18}/></button><div><p className="eyebrow">PERSONAL RESEARCH SYSTEM</p><h1>{title}</h1></div></div><div className="top-actions"><button className="command-trigger" onClick={() => setPalette(true)}><Search size={15}/><span>Search</span><kbd>Ctrl K</kbd></button><button className="icon-button" title="Toggle theme" onClick={() => setDark(!dark)}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></div></header>
       <ViewRouter view={view} health={health}/>
-    </section>
+    </section>{palette && <div className="palette-backdrop" onMouseDown={() => setPalette(false)}><section className="command-palette" onMouseDown={(event) => event.stopPropagation()}><header><Search size={17}/><input autoFocus value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} placeholder="Search pages..."/><button className="icon-button" onClick={() => setPalette(false)}><X size={16}/></button></header><div>{matchingNav.map(([id, label, Icon]) => <Link href={`/${id}`} onClick={() => setPalette(false)} key={id}><Icon size={16}/><span>{label}</span></Link>)}</div></section></div>}
   </main>;
 }
 
