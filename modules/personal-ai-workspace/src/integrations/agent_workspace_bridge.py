@@ -45,7 +45,13 @@ def execute_file_organizer(config: dict[str, Any], path: str, approval_token: st
 
 
 def run_thesis_check(config: dict[str, Any], path: str) -> dict[str, Any]:
-    return _run_agent_cli(config, "check-thesis", path)
+    response = _run_agent_cli(config, "check-thesis", path)
+    report_path = _agent_workspace_root(config) / "data" / "exports" / "thesis_check_report.json"
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Thesis check completed but its structured JSON report could not be read.") from exc
+    return {**response, "report": report}
 
 
 def run_paper_reading(config: dict[str, Any], path: str) -> dict[str, Any]:
