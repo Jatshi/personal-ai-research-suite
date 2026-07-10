@@ -28,6 +28,8 @@ export function WorkspaceShell({ view }: { view: string }) {
   const [dark, setDark] = useState(true); const [mobileNav, setMobileNav] = useState(false); const [palette, setPalette] = useState(false); const [paletteQuery, setPaletteQuery] = useState("");
   const [health, setHealth] = useState<Health | null>(null);
   useEffect(() => { api<Health>("/health").then(setHealth).catch(() => setHealth(null)); }, []);
+  useEffect(() => { const saved = window.localStorage.getItem("scholarmind-theme"); if (saved === "light" || saved === "dark") setDark(saved === "dark"); }, []);
+  useEffect(() => { window.localStorage.setItem("scholarmind-theme", dark ? "dark" : "light"); }, [dark]);
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setPalette((open) => !open); } if (event.key === "Escape") { setPalette(false); setMobileNav(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
   const title = useMemo(() => nav.find(([id]) => id === view)?.[1] ?? "Dashboard", [view]);
   const matchingNav = nav.filter(([, label]) => label.toLowerCase().includes(paletteQuery.toLowerCase()));
