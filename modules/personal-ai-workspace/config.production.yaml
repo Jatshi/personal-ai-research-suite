@@ -93,6 +93,8 @@ agent:
 integrations:
   agent_workspace_root: ../personal-agent-workspace
   agent_workspace_timeout_seconds: 120
+  mcp_toolkit_root: ../local-mcp-toolkit
+  mcp_toolkit_timeout_seconds: 60
 
 multi_agent:
   enabled: true

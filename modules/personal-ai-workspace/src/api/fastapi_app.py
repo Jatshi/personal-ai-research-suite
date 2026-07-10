@@ -320,6 +320,16 @@ def agent_workspace_thesis_check(payload: AgentWorkspacePathRequest, _: None = D
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@app.get("/integrations/mcp/doctor")
+def mcp_doctor(_: None = Depends(require_api_token)) -> dict:
+    from src.integrations.agent_workspace_bridge import run_mcp_doctor
+
+    try:
+        return run_mcp_doctor(config)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @app.post("/evaluation/compare")
 def evaluation_compare(payload: EvaluationCompareRequest, _: None = Depends(require_api_token)) -> dict:
     from src.evaluation.ab_testing import compare_configs

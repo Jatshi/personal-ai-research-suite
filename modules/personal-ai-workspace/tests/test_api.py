@@ -41,6 +41,13 @@ def test_agent_workspace_bridge_rejects_path_escape():
     assert response.status_code == 422
 
 
+def test_mcp_doctor_bridge_endpoint():
+    client = TestClient(app)
+    response = client.get("/integrations/mcp/doctor")
+    assert response.status_code == 200
+    assert response.json()["module"] == "local-mcp-toolkit"
+
+
 def test_api_ingest_payload_validation():
     client = TestClient(app)
     res = client.post("/kb/ingest", json={"path": "", "collection": "personal"})
