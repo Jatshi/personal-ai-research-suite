@@ -27,9 +27,12 @@ const nav = [
 export function WorkspaceShell({ view }: { view: string }) {
   const [dark, setDark] = useState(true); const [mobileNav, setMobileNav] = useState(false); const [palette, setPalette] = useState(false); const [paletteQuery, setPaletteQuery] = useState("");
   const [health, setHealth] = useState<Health | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   useEffect(() => { api<Health>("/health").then(setHealth).catch(() => setHealth(null)); }, []);
   useEffect(() => { const saved = window.localStorage.getItem("scholarmind-theme"); if (saved === "light" || saved === "dark") setDark(saved === "dark"); }, []);
   useEffect(() => { window.localStorage.setItem("scholarmind-theme", dark ? "dark" : "light"); }, [dark]);
+  useEffect(() => { const onToast = (event: Event) => { const detail = (event as CustomEvent<{ message?: string }>).detail; setToast(detail?.message ?? "The request could not be completed."); }; window.addEventListener("scholarmind:toast", onToast); return () => window.removeEventListener("scholarmind:toast", onToast); }, []);
+  useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 3000); return () => window.clearTimeout(timer); }, [toast]);
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setPalette((open) => !open); } if (event.key === "Escape") { setPalette(false); setMobileNav(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
   const title = useMemo(() => nav.find(([id]) => id === view)?.[1] ?? "Dashboard", [view]);
   const matchingNav = nav.filter(([, label]) => label.toLowerCase().includes(paletteQuery.toLowerCase()));
@@ -40,7 +43,7 @@ export function WorkspaceShell({ view }: { view: string }) {
     </aside>{mobileNav && <button className="nav-backdrop" aria-label="Close navigation" onClick={() => setMobileNav(false)}/>} 
     <section className="workspace"><header className="topbar"><div className="title-wrap"><button className="icon-button mobile-menu" title="Open navigation" onClick={() => setMobileNav(true)}><Menu size={18}/></button><div><p className="eyebrow">PERSONAL RESEARCH SYSTEM</p><h1>{title}</h1></div></div><div className="top-actions"><button className="command-trigger" onClick={() => setPalette(true)}><Search size={15}/><span>Search</span><kbd>Ctrl K</kbd></button><button className="icon-button" title="Toggle theme" onClick={() => setDark(!dark)}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></div></header>
       <ViewRouter view={view} health={health}/>
-    </section>{palette && <div className="palette-backdrop" onMouseDown={() => setPalette(false)}><section className="command-palette" onMouseDown={(event) => event.stopPropagation()}><header><Search size={17}/><input autoFocus value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} placeholder="Search pages..."/><button className="icon-button" onClick={() => setPalette(false)}><X size={16}/></button></header><div>{matchingNav.map(([id, label, Icon]) => <Link href={`/${id}`} onClick={() => setPalette(false)} key={id}><Icon size={16}/><span>{label}</span></Link>)}</div></section></div>}
+    </section>{toast && <button className="toast toast-error" onClick={() => setToast(null)}>{toast}</button>}{palette && <div className="palette-backdrop" onMouseDown={() => setPalette(false)}><section className="command-palette" onMouseDown={(event) => event.stopPropagation()}><header><Search size={17}/><input autoFocus value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} placeholder="Search pages..."/><button className="icon-button" onClick={() => setPalette(false)}><X size={16}/></button></header><div>{matchingNav.map(([id, label, Icon]) => <Link href={`/${id}`} onClick={() => setPalette(false)} key={id}><Icon size={16}/><span>{label}</span></Link>)}</div></section></div>}
   </main>;
 }
 
