@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from collections import Counter
 from typing import Any
 
 from src.observability.trace_logger import JsonlLogger
+from src.observability.trace_logger import log_event
+from src.config.config_loader import save_config
 from src.storage.sqlite_store import SQLiteStore
 
 
@@ -76,8 +79,73 @@ def public_settings(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+SETTINGS_FIELDS: dict[str, set[str]] = {
+    "llm": {"backend", "model_name", "temperature", "max_tokens", "timeout_seconds"},
+    "embedding": {"backend", "model_name", "dimension", "timeout_seconds"},
+    "retrieval": {
+        "default_mode", "backend", "top_k", "bm25_weight", "vector_weight",
+        "query_rewrite", "context_compression", "crag_enabled", "multi_hop_enabled", "min_confidence",
+    },
+    "graphrag": {"enabled", "backend", "auto_index"},
+    "agent": {"execution_mode", "max_iterations", "enable_long_term_memory"},
+    "safety": {"require_dry_run_for_write", "require_confirmation_for_write", "block_hidden_files", "block_sensitive_files"},
+}
+
+
+def plan_settings_update(config: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(changes, dict) or not changes:
+        raise ValueError("changes must contain at least one permitted settings section.")
+    updated = deepcopy(config)
+    diff: dict[str, dict[str, Any]] = {}
+    for section, values in changes.items():
+        if section not in SETTINGS_FIELDS or not isinstance(values, dict):
+            raise ValueError(f"Unsupported settings section: {section}")
+        for key, value in values.items():
+            if key not in SETTINGS_FIELDS[section]:
+                raise ValueError(f"Unsupported setting: {section}.{key}")
+            _validate_setting(section, key, value)
+            previous = updated.setdefault(section, {}).get(key)
+            if previous != value:
+                updated[section][key] = value
+                diff[f"{section}.{key}"] = {"before": previous, "after": value}
+    if "retrieval.bm25_weight" in diff or "retrieval.vector_weight" in diff:
+        total = float(updated["retrieval"].get("bm25_weight", 0)) + float(updated["retrieval"].get("vector_weight", 0))
+        if abs(total - 1.0) > 0.001:
+            raise ValueError("retrieval.bm25_weight and retrieval.vector_weight must sum to 1.0.")
+    return {"updated": updated, "diff": diff}
+
+
+def update_settings(config: dict[str, Any], changes: dict[str, Any], confirm: bool) -> dict[str, Any]:
+    plan = plan_settings_update(config, changes)
+    response = {"success": True, "executed": False, "requires_confirmation": True, "plan": {"operation": "update_settings", "changes": plan["diff"], "dry_run": True}}
+    if not confirm:
+        log_event(config, "settings_changes.jsonl", response)
+        return response
+    updated = plan["updated"]
+    save_config(updated, config.get("_config_path"))
+    config.clear()
+    config.update(updated)
+    response.update({"executed": True, "requires_confirmation": False, "plan": {"operation": "update_settings", "changes": plan["diff"], "dry_run": False}})
+    log_event(config, "settings_changes.jsonl", response)
+    return response
+
+
 def _pick(source: dict[str, Any], *keys: str) -> dict[str, Any]:
     return {key: source[key] for key in keys if key in source}
+
+
+def _validate_setting(section: str, key: str, value: Any) -> None:
+    if key in {"top_k", "max_tokens", "timeout_seconds", "dimension", "max_iterations"}:
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError(f"{section}.{key} must be a positive integer.")
+    elif key in {"temperature", "bm25_weight", "vector_weight", "min_confidence"}:
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or not 0 <= float(value) <= 2:
+            raise ValueError(f"{section}.{key} must be a number between 0 and 2.")
+    elif key.endswith("enabled") or key.startswith("require_") or key.startswith("block_"):
+        if not isinstance(value, bool):
+            raise ValueError(f"{section}.{key} must be a boolean.")
+    elif not isinstance(value, str):
+        raise ValueError(f"{section}.{key} must be a string.")
 
 
 def _public_document(document: dict[str, Any]) -> dict[str, Any]:

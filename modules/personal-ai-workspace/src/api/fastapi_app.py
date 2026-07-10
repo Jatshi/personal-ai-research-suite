@@ -99,6 +99,11 @@ class AgentWorkspacePathRequest(BaseModel):
     path: str = Field(..., min_length=1, max_length=500)
 
 
+class SettingsUpdateRequest(BaseModel):
+    changes: dict = Field(...)
+    confirm: bool = False
+
+
 def require_api_token(
     authorization: str | None = Header(default=None),
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
@@ -364,6 +369,16 @@ def settings_public(_: None = Depends(require_api_token)) -> dict:
     from src.api.workbench_service import public_settings
 
     return public_settings(config)
+
+
+@app.post("/settings/update")
+def settings_update(payload: SettingsUpdateRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.api.workbench_service import update_settings
+
+    try:
+        return update_settings(config, payload.changes, payload.confirm)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.get("/agent/sessions/{session_id}/memory")

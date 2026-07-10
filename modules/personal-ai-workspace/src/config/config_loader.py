@@ -27,6 +27,7 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
 def save_config(config: dict[str, Any], path: str | Path | None = None) -> None:
     config = dict(config)
     config.pop("_project_root", None)
+    config.pop("_config_path", None)
     config_path = Path(path) if path else project_root() / "config.yaml"
     with config_path.open("w", encoding="utf-8") as f:
         yaml.safe_dump(config, f, allow_unicode=True, sort_keys=False)

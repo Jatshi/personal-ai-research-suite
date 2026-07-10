@@ -48,6 +48,14 @@ def test_mcp_doctor_bridge_endpoint():
     assert response.json()["module"] == "local-mcp-toolkit"
 
 
+def test_settings_update_requires_confirmation_by_default():
+    client = TestClient(app)
+    response = client.post("/settings/update", json={"changes": {"retrieval": {"top_k": 6}}})
+    assert response.status_code == 200
+    assert response.json()["executed"] is False
+    assert response.json()["requires_confirmation"] is True
+
+
 def test_api_ingest_payload_validation():
     client = TestClient(app)
     res = client.post("/kb/ingest", json={"path": "", "collection": "personal"})
