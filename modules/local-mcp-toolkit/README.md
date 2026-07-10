@@ -4,7 +4,10 @@
 
 ## What MCP Means Here
 
-MCP (Model Context Protocol) standardizes how model clients call tools. This project uses the official Python `mcp` SDK when it is installed (`mcp.server.fastmcp.FastMCP`). For offline development environments where the SDK has not yet been installed, the same CLI falls back to a minimal JSON-stdio demo server so tests and examples remain runnable.
+MCP (Model Context Protocol) standardizes how model clients call tools. The
+production `serve` command requires the official Python `mcp` SDK
+(`mcp.server.fastmcp.FastMCP`). The previous JSON-stdio implementation remains
+available only as the explicit `legacy-serve` migration diagnostic.
 
 ## Features
 
@@ -24,7 +27,7 @@ MCP (Model Context Protocol) standardizes how model clients call tools. This pro
 - YAML config via `config.yaml`
 - JSON/JSONL local data and logs
 - pytest
-- Official Python MCP SDK via FastMCP, with a minimal JSON-stdio fallback
+- Official Python MCP SDK via FastMCP for the production server
 
 ## Install
 
@@ -69,14 +72,9 @@ On Windows PowerShell:
 .\run_mcp.ps1
 ```
 
-The stdio server accepts newline-delimited JSON:
-
-```json
-{"method":"tools/list"}
-{"method":"tools/call","tool":"list_files","arguments":{"path":".","recursive":true}}
-```
-
-After `pip install -r requirements.txt`, `serve` uses FastMCP. Without the optional SDK installed, it prints `mode=minimal-json-stdio` and accepts the JSON lines above for local smoke tests.
+The official SDK handles the MCP stdio protocol. If the SDK is unavailable,
+`serve` exits with an installation error instead of silently selecting a different
+protocol implementation.
 
 Check the MCP runtime mode:
 
@@ -84,7 +82,7 @@ Check the MCP runtime mode:
 python -m src.cli doctor-mcp
 ```
 
-This reports whether the official `mcp.server.fastmcp.FastMCP` transport is installed, the active fallback mode, and the exposed tool list.
+This reports whether the official `mcp.server.fastmcp.FastMCP` transport is installed, the required runtime mode, and the exposed tool list.
 
 Validate the whole config before starting services:
 
