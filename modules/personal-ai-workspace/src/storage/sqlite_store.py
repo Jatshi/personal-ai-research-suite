@@ -67,6 +67,16 @@ class SQLiteStore:
                 content text,
                 metadata text
             );
+            create table if not exists memories (
+                memory_id text primary key,
+                scope text not null,
+                content text not null,
+                metadata text,
+                importance real not null default 0.5,
+                created_at text not null,
+                updated_at text not null
+            );
+            create index if not exists idx_memories_scope_updated on memories(scope, updated_at desc);
             """
         )
         self.conn.commit()
@@ -136,3 +146,31 @@ class SQLiteStore:
 
     def count_documents(self) -> int:
         return int(self.conn.execute("select count(*) from documents").fetchone()[0])
+
+    def add_memory(self, memory: dict[str, Any]) -> None:
+        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.conn.execute(
+            """
+            insert or replace into memories(memory_id, scope, content, metadata, importance, created_at, updated_at)
+            values (:memory_id, :scope, :content, :metadata, :importance, coalesce(:created_at, :now), :now)
+            """,
+            {
+                **memory,
+                "metadata": json.dumps(memory.get("metadata", {}), ensure_ascii=False),
+                "created_at": memory.get("created_at"),
+                "now": now,
+            },
+        )
+        self.conn.commit()
+
+    def list_memories(self, scope: str, limit: int = 50) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            "select * from memories where scope=? order by importance desc, updated_at desc limit ?",
+            (scope, limit),
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["metadata"] = json.loads(item.get("metadata") or "{}")
+            result.append(item)
+        return result

@@ -17,6 +17,16 @@ class ToolSpec:
     requires_confirmation: bool = False
     category: str = "general"
 
+    def to_openai_tool(self) -> dict[str, Any]:
+        """Convert the compact local schema into OpenAI-compatible function JSON."""
+        schema = self.input_schema or {}
+        if schema.get("type") == "object":
+            parameters = schema
+        else:
+            properties = {key: _schema_property(value) for key, value in schema.items() if key != "required"}
+            parameters = {"type": "object", "properties": properties, "required": list(schema.get("required", []))}
+        return {"type": "function", "function": {"name": self.name, "description": self.description, "parameters": parameters}}
+
 
 ToolFunc = Callable[[dict[str, Any]], dict[str, Any]]
 
@@ -31,6 +41,13 @@ class ToolRegistry:
 
     def list_tools(self) -> list[dict[str, Any]]:
         return [{**spec.__dict__} for spec, _ in self._tools.values()]
+
+    def openai_tools(self) -> list[dict[str, Any]]:
+        return [spec.to_openai_tool() for spec, _ in self._tools.values()]
+
+    def spec(self, name: str) -> ToolSpec | None:
+        item = self._tools.get(name)
+        return item[0] if item else None
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         arguments = arguments or {}
@@ -67,3 +84,9 @@ class ToolRegistry:
         )
         return result
 
+
+def _schema_property(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    mapping = {"str": "string", "int": "integer", "float": "number", "bool": "boolean", "dict": "object", "list": "array"}
+    return {"type": mapping.get(str(value), "string")}

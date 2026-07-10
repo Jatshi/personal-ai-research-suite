@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
-from src.generation.llm_client import BaseLLMClient
+from src.generation.llm_client import BaseLLMClient, LLMToolCall, LLMToolResponse
 
 
 class OpenAICompatibleLLMClient(BaseLLMClient):
@@ -46,6 +47,27 @@ class OpenAICompatibleLLMClient(BaseLLMClient):
             max_tokens=self.max_tokens,
         )
         return response.choices[0].message.content or ""
+
+    def complete_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMToolResponse:
+        request_messages = [{"role": "system", "content": self.system_prompt}, *messages]
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=request_messages,
+            tools=tools,
+            tool_choice="auto",
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+        )
+        choice = response.choices[0]
+        message = choice.message
+        calls: list[LLMToolCall] = []
+        for call in message.tool_calls or []:
+            try:
+                arguments = json.loads(call.function.arguments or "{}")
+            except json.JSONDecodeError:
+                arguments = {}
+            calls.append(LLMToolCall(call_id=call.id, name=call.function.name, arguments=arguments))
+        return LLMToolResponse(content=message.content or "", tool_calls=calls, finish_reason=choice.finish_reason or "stop")
 
 
 def _format_context(context: list[dict[str, Any]]) -> str:

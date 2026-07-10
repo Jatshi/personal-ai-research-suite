@@ -14,6 +14,10 @@ class PersonalAssistantAgent:
 
     def run(self, goal: str) -> dict[str, Any]:
         config = self.registry.config
+        if config.get("agent", {}).get("execution_mode", "planner") == "react":
+            from src.agents.react_agent import ReActAgent
+
+            return ReActAgent(self.registry).run(goal)
         if config.get("agent", {}).get("enable_tool_calling", True) and config.get("agent", {}).get("use_llm_planner", True):
             try:
                 tool_plan = build_tool_plan(self.registry, goal)

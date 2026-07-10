@@ -25,6 +25,15 @@ retrieval:
   vector_weight: 0.6
   rerank_top_k: 10
   min_confidence: 0.35
+  query_rewrite: none
+  max_subqueries: 3
+  context_compression: none
+  max_context_tokens: 4096
+  max_context_chars: 16384
+  crag_enabled: false
+  crag_expand_top_k: 10
+  multi_hop_enabled: false
+  max_hops: 2
 
 vector_store:
   backend: chroma
@@ -68,6 +77,11 @@ agent:
   use_llm_planner: true
   require_confirmation_for_write: true
   max_steps: 8
+  execution_mode: planner
+  max_iterations: 8
+  max_repair_attempts: 2
+  enable_long_term_memory: false
+  short_term_turn_limit: 12
 
 safety:
   restrict_to_workspace: true

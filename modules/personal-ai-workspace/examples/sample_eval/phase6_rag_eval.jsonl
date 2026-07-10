@@ -1,0 +1,3 @@
+{"question":"How does hybrid RAG use citations?","expected_keywords":["retrieval","evidence"],"expected_sources":["rag_intro.md"],"should_answer":true,"collection":"personal"}
+{"question":"Compare RAG retrieval and agent safety controls.","expected_keywords":["retrieval","dry"],"expected_sources":["rag_intro.md","agent_harness_notes.md"],"should_answer":true,"collection":"personal"}
+{"question":"What is the budget for an unsupported Mars base?","expected_keywords":[],"expected_sources":[],"should_answer":false,"collection":"personal","expected_route":"low"}

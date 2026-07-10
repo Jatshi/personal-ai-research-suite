@@ -21,16 +21,24 @@ class SearchRequest(BaseModel):
     collection: str | None = None
     mode: str | None = None
     top_k: int = Field(default=5, ge=1, le=50)
+    query_rewrite: str | None = None
+    crag_enabled: bool | None = None
+    multi_hop_enabled: bool | None = None
 
 
 class AskRequest(BaseModel):
     query: str = Field(..., min_length=1)
     collection: str | None = None
     top_k: int = Field(default=5, ge=1, le=50)
+    query_rewrite: str | None = None
+    crag_enabled: bool | None = None
+    multi_hop_enabled: bool | None = None
 
 
 class AgentRunRequest(BaseModel):
     goal: str = Field(..., min_length=1)
+    mode: str | None = Field(default=None, pattern="^(planner|react)$")
+    session_id: str = Field(default="default", min_length=1, max_length=120)
 
 
 class IngestRequest(BaseModel):
@@ -98,7 +106,18 @@ def rag_ask(payload: AskRequest, _: None = Depends(require_api_token)) -> dict:
 
 @app.post("/agent/run")
 def agent_run(payload: AgentRunRequest, _: None = Depends(require_api_token)) -> dict:
-    return PersonalAssistantAgent(registry).run(payload.goal)
+    request = _dump_model(payload)
+    original = config["agent"].get("execution_mode", "planner")
+    if request.get("mode"):
+        config["agent"]["execution_mode"] = request["mode"]
+    try:
+        if config["agent"].get("execution_mode") == "react":
+            from src.agents.react_agent import ReActAgent
+
+            return ReActAgent(registry).run(payload.goal, payload.session_id)
+        return PersonalAssistantAgent(registry).run(payload.goal)
+    finally:
+        config["agent"]["execution_mode"] = original
 
 
 @app.post("/kb/ingest")
@@ -157,6 +176,13 @@ def logs(_: None = Depends(require_api_token)) -> dict:
     from src.observability.trace_logger import JsonlLogger
 
     return {"tool_calls": JsonlLogger(config, "tool_calls.jsonl").tail(50)}
+
+
+@app.get("/agent/sessions/{session_id}/memory")
+def agent_memory(session_id: str, _: None = Depends(require_api_token)) -> dict:
+    from src.memory.memory_store import MemoryStore
+
+    return {"success": True, "session_id": session_id, "memories": MemoryStore(config).list(session_id, limit=50)}
 
 
 def _dump_model(model: BaseModel) -> dict:

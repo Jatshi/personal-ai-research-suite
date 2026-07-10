@@ -43,14 +43,22 @@ def main() -> None:
     p.add_argument("--collection")
     p.add_argument("--mode", default="hybrid")
     p.add_argument("--top-k", type=int, default=5)
+    p.add_argument("--query-rewrite", choices=["none", "hyde", "decomposition"])
+    p.add_argument("--crag", action="store_true")
+    p.add_argument("--multi-hop", action="store_true")
 
     p = sub.add_parser("ask")
     p.add_argument("--query", required=True)
     p.add_argument("--collection")
     p.add_argument("--top-k", type=int, default=5)
+    p.add_argument("--query-rewrite", choices=["none", "hyde", "decomposition"])
+    p.add_argument("--crag", action="store_true")
+    p.add_argument("--multi-hop", action="store_true")
 
     p = sub.add_parser("agent")
     p.add_argument("--goal", required=True)
+    p.add_argument("--mode", choices=["planner", "react"])
+    p.add_argument("--session-id", default="default")
 
     p = sub.add_parser("daily-report")
     p.add_argument("--date", default="")
@@ -140,11 +148,16 @@ def main() -> None:
         docs = [d for d in list_docs_tool(config, {})["documents"] if d["doc_id"] == args.doc_id]
         print_json({"success": bool(docs), "document": docs[0] if docs else None})
     elif args.command == "search":
-        print_json(registry.call("search_kb", {"query": args.query, "collection": args.collection, "mode": args.mode, "top_k": args.top_k}))
+        print_json(registry.call("search_kb", _retrieval_args(args)))
     elif args.command == "ask":
-        print_json(registry.call("ask_kb", {"query": args.query, "collection": args.collection, "top_k": args.top_k}))
+        print_json(registry.call("ask_kb", _retrieval_args(args)))
     elif args.command == "agent":
-        print_json(PersonalAssistantAgent(registry).run(args.goal))
+        if args.mode == "react":
+            from src.agents.react_agent import ReActAgent
+
+            print_json(ReActAgent(registry).run(args.goal, args.session_id))
+        else:
+            print_json(PersonalAssistantAgent(registry).run(args.goal))
     elif args.command == "daily-report":
         print(registry.call("generate_daily_report", {"date": args.date, "collection": args.collection, "todo": args.todo})["report"])
     elif args.command == "weekly-report":
@@ -182,6 +195,18 @@ def main() -> None:
 
 def print_json(data: object) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def _retrieval_args(args) -> dict:
+    return {
+        "query": args.query,
+        "collection": args.collection,
+        "mode": getattr(args, "mode", None) or "hybrid",
+        "top_k": args.top_k,
+        "query_rewrite": getattr(args, "query_rewrite", None),
+        "crag_enabled": True if getattr(args, "crag", False) else None,
+        "multi_hop_enabled": True if getattr(args, "multi_hop", False) else None,
+    }
 
 
 def parse_args_json(text: str) -> dict:

@@ -289,6 +289,21 @@ If evidence confidence is too low, the system returns:
 知识库中没有足够证据回答该问题。
 ```
 
+## Phase 6 Advanced RAG
+
+The default remains grounded hybrid retrieval. Advanced controls are opt-in in
+`config.yaml`: query rewriting (`hyde` or `decomposition`), context compression,
+CRAG routing, and bounded multi-hop retrieval. Low CRAG confidence always follows
+the evidence-insufficient refusal path.
+
+```powershell
+python -m src.cli search --query "Compare RAG retrieval and agent safety" --crag --multi-hop
+python -m src.cli ask --query "Explain RAG from the evidence" --query-rewrite hyde
+```
+
+Search and ask responses expose `retrieval_trace`, including query variants,
+route decision, hop history, and compression statistics.
+
 ## Agent Harness
 
 Tools are registered with `ToolSpec`:
@@ -309,6 +324,11 @@ High-risk write tools default to dry-run and require confirmation before executi
 The personal assistant agent can use the configured LLM as a tool planner. It sends the current goal and available tool schemas to the LLM, expects a JSON plan, validates tool names and arguments locally, forces high-risk write tools into dry-run mode unless explicitly confirmed, and then executes through the same `ToolRegistry`.
 
 Offline mode uses `MockLLMClient`, which returns a deterministic JSON plan. Production mode uses `OpenAICompatibleLLMClient` when `llm.backend: openai`.
+
+Set `agent.execution_mode: react` or run `python -m src.cli agent --goal "..." --mode react`
+to use native OpenAI-compatible function calling. ReAct keeps all write operations
+behind the existing dry-run and confirmation policy and can use opt-in SQLite
+long-term memory via `agent.enable_long_term_memory`.
 
 ## MCP-like Server
 

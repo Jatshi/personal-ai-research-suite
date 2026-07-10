@@ -1,11 +1,11 @@
 # Architecture
 
-`local-mcp-toolkit` exposes local capabilities as structured MCP-style tools.
+`local-mcp-toolkit` exposes local capabilities through the official MCP Python SDK.
 
 ## Tool Layers
 
 ```text
-MCP / JSON-stdio client
+MCP SDK client (stdio)
         |
         v
 ToolRegistry
@@ -55,7 +55,10 @@ Filesystem tools are guarded by:
 
 ## MCP Runtime
 
-If the official `mcp.server.fastmcp.FastMCP` package is installed, `serve` uses it. Otherwise the same registry is exposed through a minimal JSON-stdio fallback for local testing.
+`serve` requires the official `mcp.server.fastmcp.FastMCP` runtime. It exposes
+tools, document/log resources, and reusable prompts. The old JSON-lines protocol
+is retained only behind the explicit `legacy-serve` diagnostic command and is not
+a production fallback.
 
 Use:
 

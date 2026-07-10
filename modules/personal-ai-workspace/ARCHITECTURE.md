@@ -18,6 +18,13 @@ embedding client -> SQLite vector backend or Chroma vector backend
 hybrid retriever -> evidence checker -> LLM answer generator -> citations
 ```
 
+## Phase 6 Retrieval Controls
+
+`AdvancedRetriever` wraps the hybrid retriever without replacing it. Configuration
+can enable query rewriting (HyDE or decomposition), token/extractive context
+compression, CRAG routing, and bounded multi-hop retrieval. Every request returns
+a retrieval trace. Low CRAG confidence always follows the grounded refusal path.
+
 ## LLM And Embedding Backends
 
 The project uses factory functions in `src/generation/factory.py`.
@@ -49,6 +56,17 @@ user goal
 ```
 
 This keeps LLM planning flexible while preserving deterministic local safety controls.
+
+`ReActAgent` is an optional execution mode. It uses native OpenAI-compatible tool
+calls, feeds each observation back to the model, detects repeated actions, records
+recovery/fallback decisions, and cannot bypass `ToolRegistry` approval checks.
+
+## Memory
+
+Session messages provide short-term context; the ReAct state is work memory; and
+an opt-in SQLite `memories` table stores filtered long-term preferences and durable
+task conclusions. Potential secrets and sensitive path material are rejected before
+durable storage.
 
 ## API And UI
 

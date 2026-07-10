@@ -237,6 +237,26 @@ python -m src.cli serve --server combined
 
 Use the project directory as the working directory so `config.yaml` resolves correctly.
 
+Production `serve` requires the official `mcp` Python SDK. `legacy-serve` exists
+only for migration diagnostics and must not be used in client configuration.
+
+Example client configuration:
+
+```json
+{
+  "mcpServers": {
+    "scholarmind": {
+      "command": "python",
+      "args": ["-m", "src.cli", "serve", "--server", "combined"],
+      "cwd": "/absolute/path/to/personal-ai-research-suite/modules/local-mcp-toolkit"
+    }
+  }
+}
+```
+
+The server exposes `scholarmind://collections`, document and recent-log resources,
+plus `grounded_rag_answer`, `research_summary`, and `safe_file_organization` prompts.
+
 ## Docker
 
 ```bash

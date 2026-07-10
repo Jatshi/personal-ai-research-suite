@@ -64,9 +64,12 @@ def build_registry(config: dict | None = None, enabled: list[str] | None = None)
 def run_stdio_server(registry: ToolRegistry) -> None:
     try:
         run_fastmcp_server(registry)
-        return
-    except ImportError:
-        pass
+    except ImportError as exc:
+        raise RuntimeError("Official MCP SDK is required for production serving. Install with: pip install 'mcp>=1.9.0'") from exc
+
+
+def run_legacy_stdio_server(registry: ToolRegistry) -> None:
+    """Compatibility-only JSON-lines server; never used by production `serve`."""
     print(json.dumps({"server": "local-mcp-toolkit", "mode": "minimal-json-stdio", "tools": registry.list_tools()}, ensure_ascii=False), flush=True)
     while True:
         try:
@@ -85,6 +88,10 @@ def run_stdio_server(registry: ToolRegistry) -> None:
 
 
 def run_fastmcp_server(registry: ToolRegistry) -> None:
+    build_fastmcp_server(registry).run()
+
+
+def build_fastmcp_server(registry: ToolRegistry):
     from mcp.server.fastmcp import FastMCP
 
     mcp = FastMCP("local-mcp-toolkit")
@@ -165,4 +172,32 @@ def run_fastmcp_server(registry: ToolRegistry) -> None:
     def generate_pr_description(change_summary: str, files_changed: list[str] | None = None, testing_notes: str = "") -> dict:
         return registry.call("generate_pr_description", {"change_summary": change_summary, "files_changed": files_changed, "testing_notes": testing_notes})
 
-    mcp.run()
+    @mcp.resource("scholarmind://collections")
+    def collections_resource() -> str:
+        return json.dumps(registry.call("list_collections", {}), ensure_ascii=False)
+
+    @mcp.resource("scholarmind://documents/{collection}")
+    def documents_resource(collection: str) -> str:
+        return json.dumps(registry.call("list_documents", {"collection": collection}), ensure_ascii=False)
+
+    @mcp.resource("scholarmind://document/{doc_id}")
+    def document_resource(doc_id: str) -> str:
+        return json.dumps(registry.call("get_document_summary", {"doc_id": doc_id}), ensure_ascii=False)
+
+    @mcp.resource("scholarmind://logs/recent")
+    def recent_logs_resource() -> str:
+        return json.dumps({"recent_tool_calls": registry.tool_log.read(20)}, ensure_ascii=False)
+
+    @mcp.prompt()
+    def grounded_rag_answer(question: str) -> str:
+        return f"Answer this question only from ScholarMind evidence and cite every claim: {question}"
+
+    @mcp.prompt()
+    def research_summary(topic: str) -> str:
+        return f"Search ScholarMind for {topic}, then write a concise evidence-grounded research summary."
+
+    @mcp.prompt()
+    def safe_file_organization(path: str = ".") -> str:
+        return f"Inspect {path}, produce a dry-run organization plan, and request confirmation before any write."
+
+    return mcp

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import importlib.metadata
 import json
 import re
 
 from src.config.config_loader import load_config, resolve_path
-from src.mcp_servers.combined_server import build_registry, run_stdio_server
+from src.mcp_servers.combined_server import build_registry, run_legacy_stdio_server, run_stdio_server
 from src.safety.audit_log import JsonlLog
 
 
@@ -15,6 +16,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
     serve = sub.add_parser("serve")
     serve.add_argument("--server", choices=["combined", "rag", "filesystem", "code"], default="combined")
+    legacy = sub.add_parser("legacy-serve")
+    legacy.add_argument("--server", choices=["combined", "rag", "filesystem", "code"], default="combined")
     tc = sub.add_parser("test-client")
     tc.add_argument("--tool", required=True)
     tc.add_argument("--args", default="{}")
@@ -36,6 +39,9 @@ def main() -> None:
     if args.cmd == "serve":
         enabled = {"combined": None, "rag": ["rag"], "filesystem": ["filesystem"], "code": ["code"]}[args.server]
         run_stdio_server(build_registry(config, enabled))
+    elif args.cmd == "legacy-serve":
+        enabled = {"combined": None, "rag": ["rag"], "filesystem": ["filesystem"], "code": ["code"]}[args.server]
+        run_legacy_stdio_server(build_registry(config, enabled))
     elif args.cmd == "test-client":
         registry = build_registry(config)
         payload = _loads_args(args.args)
@@ -83,12 +89,15 @@ def main() -> None:
         print(
             json.dumps(
                 {
-                    "success": True,
+                    "success": fastmcp_installed,
                     "config_path": config.get("_config_path", ""),
                     "server_name": config["mcp"]["server_name"],
                     "transport": config["mcp"].get("transport", "stdio"),
                     "fastmcp_installed": fastmcp_installed,
-                    "runtime_mode": "fastmcp" if fastmcp_installed else "minimal-json-stdio",
+                    "mcp_sdk_version": _package_version("mcp") if fastmcp_installed else None,
+                    "runtime_mode": "fastmcp" if fastmcp_installed else "sdk-required-not-installed",
+                    "resources": ["scholarmind://collections", "scholarmind://documents/{collection}", "scholarmind://document/{doc_id}", "scholarmind://logs/recent"],
+                    "prompts": ["grounded_rag_answer", "research_summary", "safe_file_organization"],
                     "tool_count": len(registry.list_tools()),
                     "tools": [t["name"] for t in registry.list_tools()],
                 },
@@ -126,6 +135,13 @@ def _module_available(name: str) -> bool:
         return importlib.util.find_spec(name) is not None
     except ModuleNotFoundError:
         return False
+
+
+def _package_version(name: str) -> str | None:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
 
 def doctor_config(config: dict) -> dict:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from src.generation.llm_client import BaseLLMClient
+from src.generation.llm_client import BaseLLMClient, LLMToolResponse
 from src.utils.text_utils import first_sentences, keyword_summary
 
 
@@ -36,6 +36,13 @@ class MockLLMClient(BaseLLMClient):
             snippets.append(f"- 来自 {src}: {first_sentences(text, 180)}")
         terms = keyword_summary(" ".join(str(i.get("text", "")) for i in context), 8)
         return "[Mock LLM] 基于检索证据的摘要：\n" + "\n".join(snippets) + f"\n\n关键词：{', '.join(terms)}"
+
+
+    def complete_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMToolResponse:
+        # Mock mode intentionally takes no action. Tests can inject a scripted
+        # client to exercise tool-call branches deterministically.
+        prompt = "\n".join(str(message.get("content", "")) for message in messages)
+        return LLMToolResponse(content=self.generate(prompt))
 
 
 def _extract_goal(prompt: str) -> str:
