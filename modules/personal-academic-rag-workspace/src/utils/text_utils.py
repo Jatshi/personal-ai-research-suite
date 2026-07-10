@@ -7,23 +7,28 @@ from collections import Counter
 
 _LATIN_RE = re.compile(r"[A-Za-z0-9_]+")
 _CJK_RUN_RE = re.compile(r"[\u4e00-\u9fff]+")
+
+# A small deterministic bridge keeps the offline retriever useful when a Chinese
+# query targets English personal material. A full translation model can replace it.
 _ZH_QUERY_HINTS = {
-    "方法": ["method", "methods", "methodology", "approach"],
-    "论文": ["paper", "academic", "study"],
-    "示例": ["demo", "demonstration", "example", "simulated"],
-    "总结": ["summary", "conclusion", "abstract"],
-    "研究": ["research", "study"],
-    "主题": ["theme", "themes", "topic"],
-    "复杂": ["complex"],
-    "声学": ["acoustic"],
-    "场景": ["scene", "scenes"],
-    "注意力": ["attention"],
-    "证据": ["evidence"],
-    "引用": ["citation", "citations"],
-    "求职": ["resume", "career"],
-    "项目": ["project"],
-    "博士": ["thesis", "dissertation"],
-    "简历": ["resume", "cv"],
+    "\u65b9\u6cd5": ["method", "methods", "methodology", "approach"],
+    "\u8bba\u6587": ["paper", "academic", "study"],
+    "\u793a\u4f8b": ["demo", "demonstration", "example", "simulated"],
+    "\u603b\u7ed3": ["summary", "conclusion", "abstract"],
+    "\u7814\u7a76": ["research", "study"],
+    "\u4e3b\u9898": ["theme", "themes", "topic"],
+    "\u590d\u6742": ["complex"],
+    "\u58f0\u5b66": ["acoustic"],
+    "\u573a\u666f": ["scene", "scenes"],
+    "\u6ce8\u610f\u529b": ["attention"],
+    "\u8bc1\u636e": ["evidence"],
+    "\u5f15\u7528": ["citation", "citations"],
+    "\u7b80\u5386": ["resume", "career", "cv"],
+    "\u9879\u76ee": ["project"],
+    "\u535a\u58eb\u8bba\u6587": ["thesis", "dissertation"],
+    "\u7cfb\u7edf": ["system", "rag"],
+    "\u5e7b\u89c9": ["hallucination", "unsupported", "grounded"],
+    "\u98ce\u9669": ["risk", "reliability"],
 }
 
 
@@ -66,18 +71,26 @@ def detect_language(text: str) -> str:
 def cosine(a: list[float], b: list[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b))
     na = math.sqrt(sum(x * x for x in a))
-    nb = math.sqrt(sum(y * y for y in b))
+    nb = math.sqrt(sum(v * v for v in b))
     if na == 0 or nb == 0:
         return 0.0
     return dot / (na * nb)
 
 
 def keyword_coverage(query: str, text: str) -> float:
-    q = set(tokenize(query))
-    if not q:
+    query_tokens = set(tokenize(query))
+    if not query_tokens:
         return 0.0
-    t = set(tokenize(text))
-    return len(q & t) / len(q)
+    text_tokens = set(tokenize(text))
+    overall = len(query_tokens & text_tokens) / len(query_tokens)
+
+    # Preserve a named English technical term (for example, RAG or LoRA) as a
+    # strong cross-language signal instead of diluting it with Chinese n-grams.
+    latin_query = {term.lower() for term in _LATIN_RE.findall(query) if len(term) > 1}
+    if not latin_query:
+        return overall
+    latin_coverage = len(latin_query & text_tokens) / len(latin_query)
+    return max(overall, latin_coverage)
 
 
 def top_terms(texts: list[str], n: int = 8) -> list[str]:

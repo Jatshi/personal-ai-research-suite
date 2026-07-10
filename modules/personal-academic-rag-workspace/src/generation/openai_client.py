@@ -4,7 +4,6 @@ import os
 from typing import Any
 
 from src.generation.llm_client import BaseEmbeddingClient, BaseLLMClient
-from src.generation.mock_llm import INSUFFICIENT_EVIDENCE_MESSAGE
 
 
 class OpenAICompatibleEmbeddingClient(BaseEmbeddingClient):
@@ -16,18 +15,26 @@ class OpenAICompatibleEmbeddingClient(BaseEmbeddingClient):
         api_key_env: str = "OPENAI_API_KEY",
         base_url: str | None = None,
         timeout: float = 60,
+        batch_size: int = 16,
+        max_retries: int = 4,
     ) -> None:
         self.model_name = model_name
         self.api_key_env = api_key_env
         self.base_url = base_url
         self.timeout = timeout
+        self.batch_size = max(1, batch_size)
+        self.max_retries = max(0, max_retries)
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
         client = self._client()
-        response = client.embeddings.create(model=self.model_name, input=texts)
-        return [list(item.embedding) for item in response.data]
+        embeddings: list[list[float]] = []
+        for start in range(0, len(texts), self.batch_size):
+            batch = texts[start : start + self.batch_size]
+            response = client.embeddings.create(model=self.model_name, input=batch)
+            embeddings.extend(list(item.embedding) for item in response.data)
+        return embeddings
 
     def embed_query(self, query: str) -> list[float]:
         return self.embed_texts([query])[0]
@@ -40,7 +47,11 @@ class OpenAICompatibleEmbeddingClient(BaseEmbeddingClient):
             from openai import OpenAI
         except ImportError as exc:
             raise RuntimeError("Install the openai package for embedding.backend=openai: pip install -r requirements.txt") from exc
-        kwargs: dict[str, Any] = {"api_key": api_key, "timeout": self.timeout}
+        kwargs: dict[str, Any] = {
+            "api_key": api_key,
+            "timeout": self.timeout,
+            "max_retries": self.max_retries,
+        }
         if self.base_url:
             kwargs["base_url"] = self.base_url
         return OpenAI(**kwargs)
@@ -57,6 +68,7 @@ class OpenAICompatibleLLMClient(BaseLLMClient):
         temperature: float = 0.2,
         max_tokens: int = 1000,
         timeout: float = 60,
+        max_retries: int = 4,
     ) -> None:
         self.model_name = model_name
         self.api_key_env = api_key_env
@@ -64,6 +76,7 @@ class OpenAICompatibleLLMClient(BaseLLMClient):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.max_retries = max(0, max_retries)
 
     def generate(self, prompt: str, context: list[dict] | None = None) -> str:
         context = context or []
@@ -76,8 +89,9 @@ class OpenAICompatibleLLMClient(BaseLLMClient):
         )
         system = (
             "You are a grounded academic RAG assistant. Answer only from the provided evidence. "
-            f"If the evidence is insufficient, answer exactly: {INSUFFICIENT_EVIDENCE_MESSAGE} "
-            "Cite evidence with bracket numbers when making claims."
+            "The caller invokes you only after evidence sufficiency has been verified. "
+            "Give a concise answer in the question language, cite evidence with bracket numbers, "
+            "and do not claim that evidence is insufficient when evidence chunks are provided."
         )
         response = client.chat.completions.create(
             model=self.model_name,
@@ -98,7 +112,11 @@ class OpenAICompatibleLLMClient(BaseLLMClient):
             from openai import OpenAI
         except ImportError as exc:
             raise RuntimeError("Install the openai package for llm.backend=openai: pip install -r requirements.txt") from exc
-        kwargs: dict[str, Any] = {"api_key": api_key, "timeout": self.timeout}
+        kwargs: dict[str, Any] = {
+            "api_key": api_key,
+            "timeout": self.timeout,
+            "max_retries": self.max_retries,
+        }
         if self.base_url:
             kwargs["base_url"] = self.base_url
         return OpenAI(**kwargs)

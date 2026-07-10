@@ -19,6 +19,8 @@ def build_embedding_client(config: dict[str, Any]) -> BaseEmbeddingClient:
             api_key_env=embedding_config.get("api_key_env", "OPENAI_API_KEY"),
             base_url=embedding_config.get("base_url") or os.getenv("OPENAI_BASE_URL"),
             timeout=float(embedding_config.get("timeout", 60)),
+            batch_size=int(embedding_config.get("batch_size", 16)),
+            max_retries=int(embedding_config.get("max_retries", 4)),
         )
     raise ValueError(f"Unsupported embedding backend: {backend}")
 
@@ -36,5 +38,6 @@ def build_llm_client(config: dict[str, Any]) -> BaseLLMClient:
             temperature=float(llm_config.get("temperature", 0.2)),
             max_tokens=int(llm_config.get("max_tokens", 1000)),
             timeout=float(llm_config.get("timeout", 60)),
+            max_retries=int(llm_config.get("max_retries", 4)),
         )
     raise ValueError(f"Unsupported LLM backend: {backend}")

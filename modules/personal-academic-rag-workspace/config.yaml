@@ -21,6 +21,8 @@ embedding:
   api_key_env: OPENAI_API_KEY
   base_url:
   timeout: 60
+  batch_size: 16
+  max_retries: 4
 
 llm:
   backend: mock
@@ -30,6 +32,7 @@ llm:
   api_key_env: OPENAI_API_KEY
   base_url:
   timeout: 60
+  max_retries: 4
 
 academic:
   enable_section_detection: true

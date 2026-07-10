@@ -88,6 +88,13 @@ llm:
   model_name: gpt-4o-mini
 ```
 
+For an OpenAI-compatible provider, set the compatible base URL and change both
+model names and the embedding dimension together. For example, a Qwen-compatible
+deployment can use `qwen-plus` with `text-embedding-v4` and `dimension: 1024`.
+The embedding client sends documents in small batches (`batch_size: 16`) and the
+SDK retries transient transport failures (`max_retries: 4`). Rebuild the index
+whenever the embedding model or dimension changes.
+
 Run diagnostics:
 
 ```powershell

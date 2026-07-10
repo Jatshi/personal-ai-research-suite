@@ -44,12 +44,36 @@ class PersonalAssistantAgent:
         reports = [r for r in reports if r]
         if reports:
             return reports[-1]
+        execution_status = self._execution_status(steps)
         prompt = (
-            "Summarize these tool outputs into a concise final response. "
-            "Do not claim facts that are not present in the tool outputs.\n"
+            "Summarize these tool outputs into a concise final response. Tool outputs are authoritative. "
+            "Do not claim facts that are not present in them. If an operation has executed=false or "
+            "plan.dry_run=true, describe it as proposed and NOT executed; never call it saved, written, "
+            "moved, renamed, or deleted.\n"
             f"Goal: {goal}\nHint: {tool_plan.get('final_response_hint', '')}"
         )
         try:
-            return build_llm_client(self.registry.config).generate(prompt, [{"steps": steps}])
+            summary = build_llm_client(self.registry.config).generate(prompt, [{"steps": steps}])
+            return f"{execution_status}\n\n{summary}"
         except Exception:
-            return "\n".join(str(step["result"])[:500] for step in steps)
+            return f"{execution_status}\n\n" + "\n".join(str(step["result"])[:500] for step in steps)
+
+    @staticmethod
+    def _execution_status(steps: list[dict[str, Any]]) -> str:
+        dry_run_count = 0
+        executed_count = 0
+        for step in steps:
+            result = step.get("result") or {}
+            plan = result.get("plan") if isinstance(result, dict) else None
+            if result.get("executed") is False or isinstance(plan, dict) and plan.get("dry_run"):
+                dry_run_count += 1
+            elif result.get("executed") is True:
+                executed_count += 1
+        if dry_run_count:
+            return (
+                f"Execution status: {dry_run_count} write operation(s) were planned as dry runs and were not executed. "
+                "Explicit user confirmation is required before any write occurs."
+            )
+        if executed_count:
+            return f"Execution status: {executed_count} write operation(s) were executed after confirmation."
+        return "Execution status: no write operation was executed."

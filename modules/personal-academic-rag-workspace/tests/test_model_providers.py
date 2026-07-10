@@ -9,6 +9,7 @@ from src.config.config_loader import load_config
 from src.generation.mock_llm import MockEmbeddingClient, MockLLMClient
 from src.generation.openai_client import OpenAICompatibleEmbeddingClient, OpenAICompatibleLLMClient
 from src.generation.providers import build_embedding_client, build_llm_client
+from src.utils.text_utils import keyword_coverage
 
 
 def test_provider_factory_defaults_to_mock():
@@ -50,6 +51,7 @@ def test_openai_compatible_clients_call_sdk(monkeypatch):
     class FakeOpenAI:
         def __init__(self, **kwargs):
             assert kwargs["api_key"] == "test-key"
+            assert kwargs["max_retries"] == 4
 
         embeddings = FakeEmbeddings()
         chat = types.SimpleNamespace(completions=FakeCompletions())
@@ -59,3 +61,9 @@ def test_openai_compatible_clients_call_sdk(monkeypatch):
 
     assert OpenAICompatibleEmbeddingClient("embedding-test").embed_query("hello") == [1.0, 0.0]
     assert OpenAICompatibleLLMClient("chat-test").generate("Say OK", [{"text": "evidence"}]) == "OK"
+
+
+def test_cross_language_coverage_preserves_named_technical_term() -> None:
+    query = "\u8bf7\u603b\u7ed3 RAG \u7cfb\u7edf\u5982\u4f55\u964d\u4f4e\u5e7b\u89c9\u98ce\u9669"
+    text = "A practical RAG system shows citations and evidence chunks."
+    assert keyword_coverage(query, text) == 1.0

@@ -1,5 +1,6 @@
-ANSWER_PROMPT = """Answer the question using only the supplied evidence chunks.
-If evidence is insufficient, return exactly: 知识库中没有足够证据回答该问题。
+ANSWER_PROMPT = """The application has already verified that the supplied evidence is sufficient.
+Write a concise, factual answer using only those evidence chunks. Use the language of the question.
+Include bracket citations such as [1] for every material claim. Do not say that evidence is insufficient.
+
 Question: {query}
 """
-
