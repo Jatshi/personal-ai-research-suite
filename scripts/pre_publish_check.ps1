@@ -3,17 +3,18 @@ $ErrorActionPreference = "Stop"
 $root = (Resolve-Path "$PSScriptRoot\..").Path
 Push-Location $root
 
-$badDirs = Get-ChildItem -Recurse -Force -Directory modules | Where-Object {
-    $_.Name -in @("data", ".pytest_cache", "__pycache__") -or $_.Name -like "*.egg-info"
-}
-$badFiles = Get-ChildItem -Recurse -Force -File . | Where-Object {
-    $_.Extension -in @(".pyc", ".pyo") -or
-    $_.Name -eq ".env" -or
-    $_.Name -eq "rag.sqlite" -or
-    $_.FullName -match "\\data\\logs\\" -or
-    $_.FullName -match "\\data\\indexes\\" -or
-    $_.FullName -match "\\data\\raw\\"
-}
+# Inspect Git publication candidates rather than all local runtime artifacts. Test
+# runs legitimately create ignored data/, cache/, and pyc files in a developer tree.
+$publishCandidates = @(git ls-files -co --exclude-standard)
+$badFiles = @($publishCandidates | Where-Object {
+    $path = $_ -replace "/", "\\"
+    $path -match "(^|\\)(\.env|\.pytest_cache|__pycache__)(\\|$)" -or
+    $path -match "\.egg-info(\\|$)" -or
+    $path -match "\.(pyc|pyo)$" -or
+    $path -match "(^|\\)modules\\[^\\]+\\data\\(logs|indexes|metadata|raw)(\\|$)" -or
+    $path -match "(^|\\)modules\\[^\\]+\\data\\.*rag\.sqlite$"
+})
+$badDirs = @()
 
 $requiredFiles = @(
     "README.md",
@@ -39,7 +40,7 @@ $result = [ordered]@{
     bad_file_count = $badFiles.Count
     missing_required_files = $missing
     doc_count = (Get-ChildItem -Recurse -File docs).Count
-    module_file_count = (Get-ChildItem -Recurse -File modules).Count
+    module_file_count = @($publishCandidates | Where-Object { $_ -like "modules/*" }).Count
 }
 
 $result | ConvertTo-Json -Depth 4 | Write-Host
@@ -47,11 +48,11 @@ $result | ConvertTo-Json -Depth 4 | Write-Host
 if (-not $result.success) {
     if ($badDirs.Count -gt 0) {
         Write-Host "Bad directories:"
-        $badDirs.FullName | Write-Host
+        $badDirs | Write-Host
     }
     if ($badFiles.Count -gt 0) {
         Write-Host "Bad files:"
-        $badFiles.FullName | Write-Host
+        $badFiles | Write-Host
     }
     Pop-Location
     exit 1
