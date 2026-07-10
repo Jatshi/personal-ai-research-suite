@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from copy import deepcopy
 from collections import Counter
 from typing import Any
@@ -8,6 +9,7 @@ from typing import Any
 from src.observability.trace_logger import JsonlLogger
 from src.observability.trace_logger import log_event
 from src.config.config_loader import save_config
+from src.config.config_loader import resolve_project_path
 from src.storage.sqlite_store import SQLiteStore
 
 
@@ -64,6 +66,45 @@ def observability_events(config: dict[str, Any], category: str | None = None, li
             events.append({"category": item, **event})
     events.sort(key=lambda item: str(item.get("timestamp", "")), reverse=True)
     return {"success": True, "events": events[:limit], "categories": categories}
+
+
+def observability_health(config: dict[str, Any]) -> dict[str, Any]:
+    """Return non-sensitive runtime status for the product health surface."""
+    from src.cli import doctor_llm
+
+    summary = dashboard_summary(config)
+    data_dir = resolve_project_path(config, config.get("app", {}).get("data_dir", "./data"))
+    usage = shutil.disk_usage(data_dir)
+    provider = doctor_llm(config, call_api=False)
+    return {
+        "success": True,
+        "llm": {
+            "backend": provider.get("llm_backend"),
+            "model": config.get("llm", {}).get("model_name"),
+            "client": provider.get("llm_client"),
+            "ready": provider.get("success", False),
+        },
+        "embedding": {
+            "backend": provider.get("embedding_backend"),
+            "model": config.get("embedding", {}).get("model_name"),
+            "dimension": config.get("embedding", {}).get("dimension"),
+            "client": provider.get("embedding_client"),
+            "ready": provider.get("success", False),
+        },
+        "index": {
+            "backend": config.get("vector_store", {}).get("backend", "sqlite"),
+            "documents": summary["documents"],
+            "chunks": summary["chunks"],
+            "graph_nodes": summary["graph"]["nodes"],
+            "graph_edges": summary["graph"]["edges"],
+        },
+        "storage": {
+            "total_bytes": usage.total,
+            "used_bytes": usage.used,
+            "free_bytes": usage.free,
+            "used_percent": round(usage.used / usage.total * 100, 1) if usage.total else 0.0,
+        },
+    }
 
 
 def public_settings(config: dict[str, Any]) -> dict[str, Any]:
@@ -135,6 +176,19 @@ def _pick(source: dict[str, Any], *keys: str) -> dict[str, Any]:
 
 
 def _validate_setting(section: str, key: str, value: Any) -> None:
+    enum_values = {
+        "retrieval.default_mode": {"hybrid", "keyword", "semantic", "graphrag", "hybrid+graphrag"},
+        "retrieval.backend": {"hybrid", "graphrag", "hybrid+graphrag"},
+        "retrieval.query_rewrite": {"none", "hyde", "decomposition"},
+        "retrieval.context_compression": {"none", "token_budget", "extractive"},
+        "graphrag.backend": {"networkx", "lightrag"},
+        "agent.execution_mode": {"planner", "react"},
+    }
+    allowed = enum_values.get(f"{section}.{key}")
+    if allowed is not None:
+        if value not in allowed:
+            raise ValueError(f"{section}.{key} must be one of: {', '.join(sorted(allowed))}.")
+        return
     if key in {"top_k", "max_tokens", "timeout_seconds", "dimension", "max_iterations"}:
         if not isinstance(value, int) or isinstance(value, bool) or value < 1:
             raise ValueError(f"{section}.{key} must be a positive integer.")

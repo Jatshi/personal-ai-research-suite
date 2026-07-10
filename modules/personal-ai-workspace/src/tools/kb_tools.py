@@ -26,7 +26,7 @@ def list_docs_tool(config: dict[str, Any], args: dict[str, Any]) -> dict[str, An
 
 def search_kb_tool(config: dict[str, Any], args: dict[str, Any]) -> dict[str, Any]:
     effective_config = copy.deepcopy(config)
-    for key in ("query_rewrite", "crag_enabled", "multi_hop_enabled"):
+    for key in ("query_rewrite", "context_compression", "crag_enabled", "multi_hop_enabled"):
         if key in args and args[key] is not None:
             effective_config["retrieval"][key] = args[key]
     top_k = int(args.get("top_k") or effective_config["retrieval"]["top_k"])

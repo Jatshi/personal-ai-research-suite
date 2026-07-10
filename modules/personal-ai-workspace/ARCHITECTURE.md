@@ -23,7 +23,9 @@ hybrid retriever -> evidence checker -> LLM answer generator -> citations
 `AdvancedRetriever` wraps the hybrid retriever without replacing it. Configuration
 can enable query rewriting (HyDE or decomposition), token/extractive context
 compression, CRAG routing, and bounded multi-hop retrieval. Every request returns
-a retrieval trace. Low CRAG confidence always follows the grounded refusal path.
+a retrieval trace. `/rag/search` and `/rag/ask` accept request-scoped overrides
+for those controls so one experiment cannot mutate the shared configuration. Low
+CRAG confidence always follows the grounded refusal path.
 
 ## GraphRAG
 
@@ -102,6 +104,10 @@ can consume REST and SSE endpoints without changing local configuration.
 - API token protection can be enabled with `server.api_auth_enabled: true`.
 - `/dashboard/summary`, `/kb/docs/{doc_id}`, `/observability/logs`, and
   `/settings/public` are read-only workbench endpoints.
+- `/observability/health` aggregates non-sensitive provider readiness, index
+  counts, and local data-volume usage. It never returns credentials, base URLs,
+  or filesystem paths. `/agent/sessions/{session_id}/memory` exposes only
+  sensitive-data-filtered durable memories for that session.
 - `/rag/ask/stream` and `/agent/chat/stream` remain the streaming workbench
   endpoints; write-capable tools stay behind the registry's dry-run/confirmation
   boundary.

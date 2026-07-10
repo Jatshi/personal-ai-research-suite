@@ -22,6 +22,19 @@ def test_settings_plan_rejects_secret_and_invalid_weight_changes():
         plan_settings_update(config, {"llm": {"api_key_env": "LEAK"}})
     with pytest.raises(ValueError, match="sum to 1.0"):
         plan_settings_update(config, {"retrieval": {"bm25_weight": 0.9, "vector_weight": 0.9}})
+    with pytest.raises(ValueError, match="query_rewrite must be one of"):
+        plan_settings_update(config, {"retrieval": {"query_rewrite": "arbitrary-prompt"}})
+
+
+def test_settings_plan_accepts_advanced_retrieval_modes():
+    config = load_config()
+    plan = plan_settings_update(
+        config,
+        {"retrieval": {"query_rewrite": "hyde", "context_compression": "extractive", "multi_hop_enabled": True}},
+    )
+    assert plan["updated"]["retrieval"]["query_rewrite"] == "hyde"
+    assert plan["updated"]["retrieval"]["context_compression"] == "extractive"
+    assert plan["updated"]["retrieval"]["multi_hop_enabled"] is True
 
 
 def test_confirmed_settings_update_writes_clean_config(tmp_path):

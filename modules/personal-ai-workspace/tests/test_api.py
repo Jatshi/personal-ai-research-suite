@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from src.api import fastapi_app
-from src.api.fastapi_app import app
+from src.api.fastapi_app import AskRequest, app
 
 
 def test_api_health_and_doctor():
@@ -20,6 +20,20 @@ def test_api_validates_search_payload():
     assert res.status_code == 422
 
 
+def test_ask_request_preserves_retrieval_overrides():
+    request = AskRequest(
+        query="Compare RAG methods",
+        mode="graphrag",
+        query_rewrite="hyde",
+        context_compression="extractive",
+        crag_enabled=True,
+        multi_hop_enabled=True,
+    )
+    assert request.mode == "graphrag"
+    assert request.query_rewrite == "hyde"
+    assert request.context_compression == "extractive"
+
+
 def test_api_kb_docs_endpoint():
     client = TestClient(app)
     res = client.get("/kb/docs")
@@ -33,6 +47,9 @@ def test_workbench_read_only_endpoints():
     assert client.get("/settings/public").status_code == 200
     assert client.get("/observability/logs?category=rag").status_code == 200
     assert client.get("/observability/logs?category=invalid").status_code == 422
+    health = client.get("/observability/health")
+    assert health.status_code == 200
+    assert {"llm", "embedding", "index", "storage"}.issubset(health.json())
 
 
 def test_agent_workspace_bridge_rejects_path_escape():

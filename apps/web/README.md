@@ -19,7 +19,14 @@ Current API-backed routes:
 - Paper Reading: `/agents/crew/run` and
   `/integrations/agent-workspace/read-papers`
 - Observability: `/observability/logs`
+- System health: `/observability/health`
 - Settings: `/settings/public` and `/llm/doctor`
+
+Search exposes request-scoped retrieval controls for mode, query rewrite, context
+compression, CRAG routing, and multi-hop retrieval. Settings changes are previewed
+first and require a separate confirmation request before the local YAML changes.
+The Agent sidebar reads its current session's filtered durable-memory summary;
+long-term memory is empty unless explicitly enabled on the backend.
 
 Browser file uploads use `/kb/upload`; the backend accepts PDF, DOCX, PPTX,
 Markdown, TXT, and HTML, stores each file in the workspace raw-data area, then

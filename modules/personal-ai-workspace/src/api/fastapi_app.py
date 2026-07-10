@@ -35,6 +35,7 @@ class SearchRequest(BaseModel):
     mode: str | None = None
     top_k: int = Field(default=5, ge=1, le=50)
     query_rewrite: str | None = None
+    context_compression: str | None = None
     crag_enabled: bool | None = None
     multi_hop_enabled: bool | None = None
 
@@ -42,8 +43,10 @@ class SearchRequest(BaseModel):
 class AskRequest(BaseModel):
     query: str = Field(..., min_length=1)
     collection: str | None = None
+    mode: str | None = None
     top_k: int = Field(default=5, ge=1, le=50)
     query_rewrite: str | None = None
+    context_compression: str | None = None
     crag_enabled: bool | None = None
     multi_hop_enabled: bool | None = None
 
@@ -444,6 +447,13 @@ def logs(category: str | None = None, limit: int = 50, _: None = Depends(require
         return observability_events(config, category, max(1, min(limit, 200)))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/observability/health")
+def observability_health(_: None = Depends(require_api_token)) -> dict:
+    from src.api.workbench_service import observability_health as get_observability_health
+
+    return get_observability_health(config)
 
 
 @app.get("/dashboard/summary")

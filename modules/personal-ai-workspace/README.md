@@ -304,6 +304,17 @@ python -m src.cli ask --query "Explain RAG from the evidence" --query-rewrite hy
 Search and ask responses expose `retrieval_trace`, including query variants,
 route decision, hop history, and compression statistics.
 
+FastAPI callers can apply the same controls per request without persisting a
+configuration change: `mode`, `query_rewrite`, `context_compression`,
+`crag_enabled`, and `multi_hop_enabled`. The product Settings page persists only
+whitelisted values and requires a preview followed by an explicit confirmation.
+
+The product workbench also exposes a read-only system-health view through
+`GET /observability/health` and a session-memory view through
+`GET /agent/sessions/{session_id}/memory`. Both endpoints omit secrets and local
+paths; durable memory remains disabled unless `agent.enable_long_term_memory` is
+explicitly enabled.
+
 ## Phase 6 GraphRAG And Research Crew
 
 Build the SQLite-backed graph index and query it directly or alongside hybrid
