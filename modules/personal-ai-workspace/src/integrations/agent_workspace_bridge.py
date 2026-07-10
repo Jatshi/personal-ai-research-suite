@@ -70,6 +70,11 @@ def run_paper_reading(config: dict[str, Any], path: str) -> dict[str, Any]:
     )
     if completed.returncode:
         raise RuntimeError(_safe_error(completed.stderr or completed.stdout))
+    workflow_path = root / "data" / "exports" / "web-paper-notes" / "workflow_log.json"
+    try:
+        workflow = _public_workflow(json.loads(workflow_path.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Paper reading completed but its workflow log could not be read.") from exc
     return {
         "success": True,
         "module": "personal-agent-workspace",
@@ -77,6 +82,7 @@ def run_paper_reading(config: dict[str, Any], path: str) -> dict[str, Any]:
         "path": relative_path,
         "output": output,
         "result": _parse_cli_json(completed.stdout),
+        "workflow": workflow,
     }
 
 
@@ -169,3 +175,19 @@ def _safe_error(value: str) -> str:
 def _operations_hash(operations: list[dict[str, Any]]) -> str:
     payload = json.dumps(operations, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _public_workflow(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    public: list[dict[str, Any]] = []
+    for entry in entries:
+        steps = entry.get("steps", {}) if isinstance(entry.get("steps"), dict) else {}
+        reader = steps.get("reader", {}) if isinstance(steps.get("reader"), dict) else {}
+        public.append({
+            "file_name": Path(str(entry.get("file", ""))).name,
+            "status": entry.get("status", "unknown"),
+            "title": reader.get("title", "Untitled paper"),
+            "year": reader.get("year"),
+            "completed_roles": [name for name in ("reader", "method", "experiment", "critic", "writer") if name in steps],
+            "error_count": len(entry.get("errors", [])) if isinstance(entry.get("errors"), list) else 0,
+        })
+    return public
