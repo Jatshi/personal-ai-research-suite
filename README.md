@@ -34,6 +34,10 @@ ScholarMind AgentOS is a GitHub-ready monorepo for building a private AI researc
 
 The project runs in offline mock mode by default, but it also includes OpenAI-compatible LLM and embedding interfaces for real production use.
 
+Phase 6 implementation and verification boundaries are tracked in
+[English](docs/en/PHASE6_P1_P2_VERIFICATION.md) and
+[中文](docs/cn/PHASE6_P1_P2_VERIFICATION.md).
+
 ## Demo
 
 The demo below is intentionally API-free. It shows the product flow without exposing private data or requiring an API key.
