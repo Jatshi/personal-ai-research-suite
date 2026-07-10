@@ -10,6 +10,7 @@ from src.indexing.index_manager import ingest_path
 from src.observability.trace_logger import log_event
 from src.retrieval.hybrid_retriever import search_chunks
 from src.retrieval.advanced_retriever import AdvancedRetriever
+from src.graphrag.graph_retriever import GraphRAGRetriever
 from src.storage.sqlite_store import SQLiteStore
 
 
@@ -56,6 +57,8 @@ def search_kb_tool(config: dict[str, Any], args: dict[str, Any]) -> dict[str, An
 
 def _base_search(config: dict[str, Any], query: str, top_k: int, collection: str | None, mode: str) -> list[dict[str, Any]]:
     store = SQLiteStore(config)
+    if mode == "graphrag" or (mode == "hybrid" and config.get("retrieval", {}).get("backend") == "graphrag"):
+        return GraphRAGRetriever(store).search(query, collection, top_k)
     chunks = store.get_chunks(collection)
     embedder = build_embedding_client(config) if mode != "keyword" else None
     semantic_results = None
@@ -72,6 +75,17 @@ def _base_search(config: dict[str, Any], query: str, top_k: int, collection: str
         embedder=embedder,
         semantic_results=semantic_results,
     )
+    if mode == "hybrid+graphrag" or (mode == "hybrid" and config.get("retrieval", {}).get("backend") == "hybrid+graphrag"):
+        graph_results = GraphRAGRetriever(store).search(query, collection, top_k * 2)
+        merged = {item["chunk_id"]: item for item in results}
+        for item in graph_results:
+            existing = merged.get(item["chunk_id"])
+            if existing:
+                existing["graph_score"] = item.get("graph_score", 0.0)
+                existing["score"] = existing.get("score", 0.0) + 0.15 * item.get("graph_score", 0.0)
+            else:
+                merged[item["chunk_id"]] = item
+        return sorted(merged.values(), key=lambda item: item.get("score", 0.0), reverse=True)[:top_k]
     return results
 
 

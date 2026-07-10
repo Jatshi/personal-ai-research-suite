@@ -90,6 +90,12 @@ def main() -> None:
     p = sub.add_parser("eval-rag")
     p.add_argument("--dataset", required=True)
     p.add_argument("--output")
+    p.add_argument("--engine", choices=["builtin", "ragas"], default="builtin")
+
+    p = sub.add_parser("eval-ab")
+    p.add_argument("--dataset", required=True)
+    p.add_argument("--config-a", required=True, help="JSON object with config overrides")
+    p.add_argument("--config-b", required=True, help="JSON object with config overrides")
 
     p = sub.add_parser("eval-agent")
     p.add_argument("--dataset")
@@ -171,7 +177,16 @@ def main() -> None:
     elif args.command == "reading-list":
         print(reading_list_markdown(config, args.topic, args.output))
     elif args.command == "eval-rag":
-        print_json(eval_rag(config, args.dataset, args.output))
+        if args.engine == "ragas":
+            from src.evaluation.ragas_evaluator import eval_ragas
+
+            print_json(eval_ragas(config, args.dataset))
+        else:
+            print_json(eval_rag(config, args.dataset, args.output))
+    elif args.command == "eval-ab":
+        from src.evaluation.ab_testing import compare_configs
+
+        print_json(compare_configs(config, args.dataset, parse_args_json(args.config_a), parse_args_json(args.config_b)))
     elif args.command == "eval-agent":
         print_json(eval_agent(config, args.dataset, args.output))
     elif args.command == "mcp-serve":

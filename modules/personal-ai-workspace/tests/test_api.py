@@ -33,6 +33,17 @@ def test_api_ingest_payload_validation():
     assert res.status_code == 422
 
 
+def test_phase6_api_endpoints_exist():
+    client = TestClient(app)
+    assert client.post("/graph/build", json={}).status_code == 200
+    assert client.post("/agents/crew/run", json={"topic": "RAG"}).status_code == 200
+    assert client.post("/evaluation/compare", json={"dataset": "examples/sample_eval/rag_eval.jsonl", "config_a": {}, "config_b": {}}).status_code == 200
+    assert client.post("/graph/ask", json={"query": "test"}).status_code == 409
+    stream = client.post("/rag/ask/stream", json={"query": "RAG"})
+    assert stream.status_code == 200
+    assert "event: result" in stream.text
+
+
 def test_api_token_auth_when_enabled(monkeypatch):
     client = TestClient(app)
     old = fastapi_app.config["server"].get("api_auth_enabled")

@@ -77,6 +77,30 @@ class SQLiteStore:
                 updated_at text not null
             );
             create index if not exists idx_memories_scope_updated on memories(scope, updated_at desc);
+            create table if not exists graph_nodes (
+                node_id text primary key,
+                label text not null,
+                node_type text not null,
+                collection text,
+                metadata text,
+                updated_at text not null
+            );
+            create table if not exists graph_edges (
+                source_id text not null,
+                target_id text not null,
+                relation text not null,
+                weight real not null default 1,
+                collection text,
+                primary key(source_id, target_id, relation, collection)
+            );
+            create table if not exists graph_chunk_links (
+                node_id text not null,
+                chunk_id text not null,
+                collection text,
+                weight real not null default 1,
+                primary key(node_id, chunk_id)
+            );
+            create index if not exists idx_graph_links_collection on graph_chunk_links(collection, node_id);
             """
         )
         self.conn.commit()
@@ -174,3 +198,33 @@ class SQLiteStore:
             item["metadata"] = json.loads(item.get("metadata") or "{}")
             result.append(item)
         return result
+
+    def replace_graph(self, collection: str | None, nodes: list[dict[str, Any]], edges: list[dict[str, Any]], links: list[dict[str, Any]]) -> None:
+        if collection:
+            self.conn.execute("delete from graph_chunk_links where collection=?", (collection,))
+            self.conn.execute("delete from graph_edges where collection=?", (collection,))
+            self.conn.execute("delete from graph_nodes where collection=?", (collection,))
+        else:
+            self.conn.execute("delete from graph_chunk_links")
+            self.conn.execute("delete from graph_edges")
+            self.conn.execute("delete from graph_nodes")
+        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.conn.executemany(
+            "insert or replace into graph_nodes(node_id,label,node_type,collection,metadata,updated_at) values (:node_id,:label,:node_type,:collection,:metadata,:updated_at)",
+            [{**node, "metadata": json.dumps(node.get("metadata", {}), ensure_ascii=False), "updated_at": now} for node in nodes],
+        )
+        self.conn.executemany(
+            "insert or replace into graph_edges(source_id,target_id,relation,weight,collection) values (:source_id,:target_id,:relation,:weight,:collection)",
+            edges,
+        )
+        self.conn.executemany(
+            "insert or replace into graph_chunk_links(node_id,chunk_id,collection,weight) values (:node_id,:chunk_id,:collection,:weight)",
+            links,
+        )
+        self.conn.commit()
+
+    def graph_snapshot(self, collection: str | None = None) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+        clause, params = (" where collection=?", (collection,)) if collection else ("", ())
+        tables = ("graph_nodes", "graph_edges", "graph_chunk_links")
+        rows = [self.conn.execute(f"select * from {table}{clause}", params).fetchall() for table in tables]
+        return tuple([dict(row) for row in group] for group in rows)  # type: ignore[return-value]

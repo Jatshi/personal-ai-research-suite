@@ -25,6 +25,13 @@ can enable query rewriting (HyDE or decomposition), token/extractive context
 compression, CRAG routing, and bounded multi-hop retrieval. Every request returns
 a retrieval trace. Low CRAG confidence always follows the grounded refusal path.
 
+## GraphRAG
+
+`graphrag.backend: networkx` persists concept nodes, co-occurrence edges, and
+chunk links in SQLite. It can run alone or be fused with hybrid retrieval through
+`retrieval.backend: graphrag | hybrid+graphrag`. `LightRAGAdapter` is an optional
+production backend that reuses the configured OpenAI-compatible clients.
+
 ## LLM And Embedding Backends
 
 The project uses factory functions in `src/generation/factory.py`.
@@ -67,6 +74,19 @@ Session messages provide short-term context; the ReAct state is work memory; and
 an opt-in SQLite `memories` table stores filtered long-term preferences and durable
 task conclusions. Potential secrets and sensitive path material are rejected before
 durable storage.
+
+## Multi-Agent Research Crew
+
+The `multi_agent` package provides small `AgentRole`, `Task`, and `Crew`
+abstractions. The research crew runs Reader, Method, Experiment, Critic, and
+Writer roles sequentially over shared evidence, then records the full run in JSONL.
+
+## Evaluation And UI
+
+Built-in evaluation remains deterministic. `compare_configs` executes isolated
+configuration A/B comparisons, while optional RAGAS evaluation uses production
+extras and the configured OpenAI-compatible evaluator endpoints. The `apps/web`
+Next.js application consumes the FastAPI REST/SSE API in parallel with Streamlit.
 
 ## API And UI
 

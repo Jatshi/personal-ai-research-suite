@@ -46,5 +46,9 @@ def ingest_path(config: dict[str, Any], path: str, collection: str, source_type:
         store.upsert_document(doc)
         store.add_chunks(chunks)
         upsert_chunks_to_chroma(config, collection, chunks)
+        if config.get("graphrag", {}).get("auto_index", False):
+            from src.graphrag.graph_index import NetworkXGraphIndex
+
+            NetworkXGraphIndex(store).build(store.get_chunks(collection), collection)
         docs.append({**doc, "chunk_count": len(chunks)})
     return docs

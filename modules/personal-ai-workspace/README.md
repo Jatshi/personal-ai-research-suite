@@ -304,6 +304,46 @@ python -m src.cli ask --query "Explain RAG from the evidence" --query-rewrite hy
 Search and ask responses expose `retrieval_trace`, including query variants,
 route decision, hop history, and compression statistics.
 
+## Phase 6 GraphRAG And Research Crew
+
+Build the SQLite-backed graph index and query it directly or alongside hybrid
+retrieval:
+
+```powershell
+python -m src.cli mcp-client --tool ingest --args '{"path":"examples/sample_docs","collection":"personal"}'
+curl -X POST http://127.0.0.1:8000/graph/build -H "Content-Type: application/json" -d '{"collection":"personal"}'
+```
+
+Use `retrieval.backend: graphrag` or `hybrid+graphrag` after a graph build. The
+five-role research crew is available through `POST /agents/crew/run`; it records
+Reader, Method, Experiment, Critic, and Writer outputs in `multi_agent_runs.jsonl`.
+
+## Evaluation
+
+```powershell
+python -m src.cli eval-ab --dataset ./examples/sample_eval/phase6_rag_eval.jsonl --config-a '{"retrieval":{"top_k":2}}' --config-b '{"retrieval":{"top_k":5}}'
+python -m src.cli eval-rag --engine ragas --dataset ./examples/sample_eval/phase6_rag_eval.jsonl
+```
+
+The first command is offline-capable. RAGAS requires the production extra and a
+configured OpenAI-compatible chat and embedding API.
+
+## Next.js Workbench
+
+The product UI is in `../../apps/web` and runs alongside Streamlit:
+
+```powershell
+cd ../../apps/web
+npm install
+$env:NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8000"
+npm run dev
+```
+
+It provides Dashboard, Import, Search, Agent, File Organizer, Thesis Check, Paper
+Reading, Observability, MCP, and Settings routes. RAG and Agent screens consume
+FastAPI SSE endpoints; all other routes remain compatible with existing Streamlit
+workflows during migration.
+
 ## Agent Harness
 
 Tools are registered with `ToolSpec`:

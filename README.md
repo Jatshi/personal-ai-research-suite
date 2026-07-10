@@ -59,13 +59,13 @@ The four modules can run separately, but they are packaged here as one coherent 
 
 | Area | Implemented Capabilities |
 |---|---|
-| Grounded RAG | PDF/Word/PPT/Markdown/TXT ingestion, chunking, metadata, BM25, vector search, hybrid search, reranking, citations, confidence score |
+| Grounded RAG | PDF/Word/PPT/Markdown/TXT ingestion, chunking, metadata, BM25, vector search, hybrid search, reranking, citations, confidence score, query rewriting, CRAG, multi-hop and GraphRAG |
 | Academic RAG | Paper metadata extraction, section parsing, reading notes, literature comparison tables |
-| Safe Agents | Tool registry, state tracking, dry-run, human approval, audit log, rollback records |
+| Safe Agents | Tool registry, native function calling, ReAct execution, three-layer memory, state tracking, dry-run, human approval, audit log, rollback records |
 | Thesis Workflow | Chapter checks, figure/table/equation/reference checks, todo report export |
 | Work Assistant | Todo parsing, task planning, daily/weekly report generation, email draft generation |
-| MCP-style Bridge | Structured local tools for external AI clients and IDE agents |
-| Production Readiness | `.env.example`, production configs, CI, tests, docs, release checklist |
+| MCP Bridge | Official MCP SDK/FastMCP tools, resources and prompts for external AI clients and IDE agents |
+| Evaluation And Product UI | Built-in retrieval eval, A/B comparison, optional RAGAS, JSONL observability, Streamlit compatibility UI, and a Next.js workbench |
 
 ## Architecture
 
@@ -140,6 +140,22 @@ python -m src.cli check-thesis --path .\examples\thesis_sample\thesis.md
 python -m src.cli read-papers --path .\examples\papers --output .\data\exports\paper_notes
 streamlit run app\streamlit_app.py
 ```
+
+Launch the Phase 6 product workbench (requires the Personal AI Workspace API):
+
+```powershell
+cd modules\personal-ai-workspace
+uvicorn src.api.fastapi_app:app --port 8000
+
+# in another terminal
+cd apps\web
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:3000/dashboard`. The Next.js UI uses REST/SSE and shares
+the FastAPI safety, observability and authentication boundary; Streamlit remains
+available for compatibility workflows that are being migrated.
 
 ## Real LLM Mode
 

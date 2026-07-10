@@ -19,6 +19,7 @@ chunking:
   chunk_overlap: 120
 
 retrieval:
+  backend: hybrid
   default_mode: hybrid
   top_k: 5
   bm25_weight: 0.4
@@ -34,6 +35,12 @@ retrieval:
   crag_expand_top_k: 10
   multi_hop_enabled: false
   max_hops: 2
+
+graphrag:
+  enabled: false
+  backend: networkx
+  auto_index: false
+  working_dir: ./data/lightrag
 
 vector_store:
   backend: sqlite
@@ -83,6 +90,15 @@ agent:
   enable_long_term_memory: false
   short_term_turn_limit: 12
 
+multi_agent:
+  enabled: true
+  roles:
+    reader: { llm: {} }
+    method: { llm: {} }
+    experiment: { llm: {} }
+    critic: { llm: {} }
+    writer: { llm: {} }
+
 safety:
   restrict_to_workspace: true
   require_dry_run_for_write: true
@@ -100,6 +116,8 @@ observability:
 evaluation:
   default_eval_dataset: ./examples/sample_eval/rag_eval.jsonl
   output_dir: ./data/exports/eval
+  ragas_enabled: false
+  ragas_judge_model: ""
 
 reading:
   enable_url_import: true

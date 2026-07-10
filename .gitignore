@@ -12,5 +12,7 @@
 **/workspace/
 **/.DS_Store
 **/node_modules/
+**/.next/
+**/*.tsbuildinfo
 **/dist/
 **/build/

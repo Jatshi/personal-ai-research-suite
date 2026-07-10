@@ -7,6 +7,7 @@ from src.tools.kb_tools import ask_kb_tool, ingest_tool, list_docs_tool, search_
 from src.tools.note_tools import write_note_tool
 from src.tools.report_tools import daily_report_tool, weekly_report_tool
 from src.tools.todo_tools import read_todo_tool, write_todo_tool
+from src.multi_agent.research_crew import run_research_crew
 from src.tools.tool_registry import ToolRegistry, ToolSpec
 
 
@@ -24,5 +25,5 @@ def build_registry(config: dict[str, Any]) -> ToolRegistry:
     r.register(ToolSpec("write_todo", "Write todo.md", {"path": "str", "content": "str"}, risk_level="high", requires_confirmation=True, category="todo"), lambda a: write_todo_tool(config, a))
     r.register(ToolSpec("generate_daily_report", "Generate daily report", {"date": "str"}, category="report"), lambda a: daily_report_tool(config, a))
     r.register(ToolSpec("generate_weekly_report", "Generate weekly report", {"from": "str", "to": "str"}, category="report"), lambda a: weekly_report_tool(config, a))
+    r.register(ToolSpec("run_research_crew", "Run the multi-agent research workflow", {"topic": "str", "collection": "str"}, category="research"), lambda a: run_research_crew(config, a["topic"], a.get("collection"), int(a.get("top_k", 8))))
     return r
-

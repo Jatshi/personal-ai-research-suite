@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import os
+import json
+import asyncio
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from src.agents.personal_assistant_agent import PersonalAssistantAgent
@@ -14,6 +19,13 @@ from src.tools.kb_tools import ingest_tool, list_docs_tool
 config = load_config()
 registry = build_registry(config)
 app = FastAPI(title="personal-ai-workspace")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.get("server", {}).get("cors_origins", ["http://localhost:3000"]),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class SearchRequest(BaseModel):
@@ -54,6 +66,33 @@ class ReindexRequest(BaseModel):
 class DeleteDocRequest(BaseModel):
     doc_id: str = Field(..., min_length=1)
     confirm: bool = False
+
+
+class GraphBuildRequest(BaseModel):
+    collection: str | None = None
+
+
+class GraphAskRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+
+
+class ResearchCrewRequest(BaseModel):
+    topic: str = Field(..., min_length=1)
+    collection: str | None = None
+    top_k: int = Field(default=8, ge=1, le=30)
+
+
+class EvaluationCompareRequest(BaseModel):
+    dataset: str = Field(..., min_length=1)
+    config_a: dict = Field(default_factory=dict)
+    config_b: dict = Field(default_factory=dict)
+
+
+class StreamChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    collection: str | None = None
+    mode: str = Field(default="react", pattern="^(planner|react)$")
+    session_id: str = Field(default="default", min_length=1, max_length=120)
 
 
 def require_api_token(
@@ -104,6 +143,16 @@ def rag_ask(payload: AskRequest, _: None = Depends(require_api_token)) -> dict:
     return registry.call("ask_kb", _dump_model(payload))
 
 
+@app.post("/rag/ask/stream")
+def rag_ask_stream(payload: AskRequest, _: None = Depends(require_api_token)) -> StreamingResponse:
+    def events():
+        yield _sse("status", {"stage": "retrieving"})
+        result = registry.call("ask_kb", _dump_model(payload))
+        yield _sse("result", result)
+
+    return StreamingResponse(events(), media_type="text/event-stream")
+
+
 @app.post("/agent/run")
 def agent_run(payload: AgentRunRequest, _: None = Depends(require_api_token)) -> dict:
     request = _dump_model(payload)
@@ -118,6 +167,21 @@ def agent_run(payload: AgentRunRequest, _: None = Depends(require_api_token)) ->
         return PersonalAssistantAgent(registry).run(payload.goal)
     finally:
         config["agent"]["execution_mode"] = original
+
+
+@app.post("/agent/chat/stream")
+def agent_chat_stream(payload: StreamChatRequest, _: None = Depends(require_api_token)) -> StreamingResponse:
+    def events():
+        yield _sse("status", {"stage": "planning", "mode": payload.mode})
+        if payload.mode == "react":
+            from src.agents.react_agent import ReActAgent
+
+            result = ReActAgent(registry).run(payload.message, payload.session_id)
+        else:
+            result = PersonalAssistantAgent(registry).run(payload.message)
+        yield _sse("result", result)
+
+    return StreamingResponse(events(), media_type="text/event-stream")
 
 
 @app.post("/kb/ingest")
@@ -166,6 +230,65 @@ def kb_delete(payload: DeleteDocRequest, _: None = Depends(require_api_token)) -
     return {"success": True, "executed": True, "deleted": payload.doc_id, "plan": plan}
 
 
+@app.post("/graph/build")
+def graph_build(payload: GraphBuildRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.generation.factory import build_embedding_client, build_llm_client
+    from src.graphrag.graph_index import NetworkXGraphIndex
+    from src.storage.sqlite_store import SQLiteStore
+
+    store = SQLiteStore(config)
+    chunks = store.get_chunks(payload.collection)
+    graph_cfg = config.get("graphrag", {})
+    backend = str(graph_cfg.get("backend", "networkx")).lower()
+    if backend == "lightrag":
+        from src.graphrag.lightrag_adapter import LightRAGAdapter
+
+        working_dir = Path(graph_cfg.get("working_dir", "./data/lightrag")).resolve()
+        adapter = LightRAGAdapter(
+            str(working_dir),
+            build_llm_client(config),
+            build_embedding_client(config),
+            int(config.get("embedding", {}).get("dimension", 384)),
+            str(config.get("embedding", {}).get("model_name", "mock-embedding")),
+        )
+        asyncio.run(adapter.index([str(chunk.get("text", "")) for chunk in chunks]))
+        return {"success": True, "collection": payload.collection, "backend": "lightrag", "indexed_chunks": len(chunks)}
+    return {"success": True, "collection": payload.collection, "backend": "networkx", **NetworkXGraphIndex(store).build(chunks, payload.collection)}
+
+
+@app.post("/graph/ask")
+def graph_ask(payload: GraphAskRequest, _: None = Depends(require_api_token)) -> dict:
+    """Query the optional official LightRAG integration after a LightRAG graph build."""
+    from src.generation.factory import build_embedding_client, build_llm_client
+    from src.graphrag.lightrag_adapter import LightRAGAdapter
+
+    graph_cfg = config.get("graphrag", {})
+    if str(graph_cfg.get("backend", "networkx")).lower() != "lightrag":
+        raise HTTPException(status_code=409, detail="Set graphrag.backend=lightrag before using /graph/ask.")
+    adapter = LightRAGAdapter(
+        str(Path(graph_cfg.get("working_dir", "./data/lightrag")).resolve()),
+        build_llm_client(config),
+        build_embedding_client(config),
+        int(config.get("embedding", {}).get("dimension", 384)),
+        str(config.get("embedding", {}).get("model_name", "mock-embedding")),
+    )
+    return {"success": True, "backend": "lightrag", "answer": asyncio.run(adapter.query(payload.query))}
+
+
+@app.post("/agents/crew/run")
+def research_crew_run(payload: ResearchCrewRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.multi_agent.research_crew import run_research_crew
+
+    return run_research_crew(config, payload.topic, payload.collection, payload.top_k)
+
+
+@app.post("/evaluation/compare")
+def evaluation_compare(payload: EvaluationCompareRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.evaluation.ab_testing import compare_configs
+
+    return compare_configs(config, payload.dataset, payload.config_a, payload.config_b)
+
+
 @app.get("/llm/doctor")
 def llm_doctor(_: None = Depends(require_api_token)) -> dict:
     return doctor_llm(config, call_api=False)
@@ -189,3 +312,7 @@ def _dump_model(model: BaseModel) -> dict:
     if hasattr(model, "model_dump"):
         return model.model_dump(exclude_none=True)
     return model.dict(exclude_none=True)
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"

@@ -19,3 +19,11 @@ foreach ($project in $projects) {
     }
     Pop-Location
 }
+
+$webDir = Join-Path $root "apps\web"
+if (Test-Path (Join-Path $webDir "package.json")) {
+    Write-Host "Building ScholarMind web workbench"
+    Push-Location $webDir
+    npm run build
+    Pop-Location
+}
