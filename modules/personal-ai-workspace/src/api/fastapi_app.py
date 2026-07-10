@@ -89,6 +89,11 @@ class EvaluationCompareRequest(BaseModel):
     config_b: dict = Field(default_factory=dict)
 
 
+class EvaluationRunRequest(BaseModel):
+    dataset: str = Field(..., min_length=1)
+    engine: str = Field(default="builtin", pattern="^(builtin|ragas)$")
+
+
 class StreamChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
     collection: str | None = None
@@ -393,6 +398,25 @@ def evaluation_compare(payload: EvaluationCompareRequest, _: None = Depends(requ
     from src.evaluation.ab_testing import compare_configs
 
     return compare_configs(config, payload.dataset, payload.config_a, payload.config_b)
+
+
+@app.post("/evaluation/run")
+def evaluation_run(payload: EvaluationRunRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.evaluation.rag_evaluator import eval_rag
+    from src.observability.trace_logger import log_event
+
+    try:
+        if payload.engine == "ragas":
+            from src.evaluation.ragas_evaluator import eval_ragas
+
+            report = eval_ragas(config, payload.dataset)
+        else:
+            report = eval_rag(config, payload.dataset)
+        response = {"success": True, "engine": payload.engine, "dataset": payload.dataset, **report}
+        log_event(config, "evaluation.jsonl", response)
+        return response
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.get("/llm/doctor")

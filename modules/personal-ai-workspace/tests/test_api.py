@@ -56,6 +56,13 @@ def test_settings_update_requires_confirmation_by_default():
     assert response.json()["requires_confirmation"] is True
 
 
+def test_builtin_evaluation_api_runs():
+    client = TestClient(app)
+    response = client.post("/evaluation/run", json={"dataset": "examples/sample_eval/phase6_rag_eval.jsonl"})
+    assert response.status_code == 200
+    assert "metrics" in response.json()
+
+
 def test_api_ingest_payload_validation():
     client = TestClient(app)
     res = client.post("/kb/ingest", json={"path": "", "collection": "personal"})
