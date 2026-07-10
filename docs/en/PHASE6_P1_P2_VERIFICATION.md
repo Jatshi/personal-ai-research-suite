@@ -44,3 +44,16 @@ $env:OPENAI_BASE_URL = "https://provider.example/v1"
 
 The repository includes optional integration tests. They are skipped rather than
 falsely passed when LightRAG/RAGAS are not installed.
+
+## Verified Production Extra Set
+
+The isolated verification environment passed the optional integration tests with:
+
+- `lightrag-hku 1.5.4`
+- `ragas 0.4.3`
+- `langchain-openai 1.3.4`
+- `langchain-community 0.3.31`
+
+`langchain-community 0.4.x` is not compatible with RAGAS 0.4.3 because its
+VertexAI import path was removed. The production extra therefore pins the
+compatible `>=0.3.31,<0.4` range.

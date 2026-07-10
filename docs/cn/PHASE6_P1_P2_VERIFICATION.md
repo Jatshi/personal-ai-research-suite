@@ -43,3 +43,16 @@ $env:OPENAI_BASE_URL = "https://provider.example/v1"
 
 仓库包含可选集成测试；当 LightRAG/RAGAS 未安装时，测试会显式 skip，
 而不是伪造通过结果。
+
+## 已验证的 Production Extra 组合
+
+隔离验证环境已通过 optional integration test，使用的版本为：
+
+- `lightrag-hku 1.5.4`
+- `ragas 0.4.3`
+- `langchain-openai 1.3.4`
+- `langchain-community 0.3.31`
+
+`langchain-community 0.4.x` 与 RAGAS 0.4.3 不兼容，因为它移除了
+RAGAS 仍会引用的 VertexAI 导入路径。因此 production extra 固定为
+`>=0.3.31,<0.4`。

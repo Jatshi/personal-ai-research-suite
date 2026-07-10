@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 
 import pytest
@@ -16,6 +17,8 @@ def test_lightrag_adapter_accepts_workspace_clients(tmp_path):
 
     adapter = LightRAGAdapter(str(tmp_path / "lightrag"), MockLLMClient(), MockEmbeddingClient(384), 384, "mock-embedding")
     assert adapter.rag is not None
+    asyncio.run(adapter.index(["RAG grounds answers in local evidence."]))
+    assert asyncio.run(adapter.query("What grounds answers?"))
 
 
 @pytest.mark.skipif(importlib.util.find_spec("ragas") is None or importlib.util.find_spec("langchain_openai") is None, reason="production RAGAS extra is not installed")

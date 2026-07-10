@@ -14,7 +14,7 @@ def eval_ragas(config: dict[str, Any], dataset: str) -> dict[str, Any]:
         from ragas import EvaluationDataset, SingleTurnSample, evaluate
         from ragas.embeddings import LangchainEmbeddingsWrapper
         from ragas.llms import LangchainLLMWrapper
-        from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
+        from ragas.metrics.collections import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
         from langchain_openai import ChatOpenAI, OpenAIEmbeddings
     except ImportError as exc:
         raise RuntimeError("RAGAS evaluation requires production extras: pip install -e '.[production]'") from exc
