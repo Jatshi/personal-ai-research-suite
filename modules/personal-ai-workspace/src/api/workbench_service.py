@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import datetime, timedelta, timezone
 from copy import deepcopy
 from collections import Counter
 from typing import Any
@@ -30,6 +31,19 @@ def dashboard_summary(config: dict[str, Any]) -> dict[str, Any]:
     collections = Counter(str(document.get("collection") or "unassigned") for document in documents)
     file_types = Counter(str(document.get("file_type") or "unknown") for document in documents)
     nodes, edges, _ = store.graph_snapshot()
+    query_events = JsonlLogger(config, LOG_FILES["rag"]).tail(500)
+    confidence_values = [float(event["confidence"]) for event in query_events if isinstance(event.get("confidence"), (int, float))]
+    recent_queries = [
+        {
+            "query": str(event.get("query", "")),
+            "timestamp": event.get("timestamp"),
+            "confidence": event.get("confidence"),
+            "collection": event.get("collection"),
+            "retrieved_chunks": len(event.get("retrieved_chunks", [])),
+        }
+        for event in query_events
+        if event.get("query")
+    ][-8:][::-1]
     return {
         "success": True,
         "documents": len(documents),
@@ -37,6 +51,12 @@ def dashboard_summary(config: dict[str, Any]) -> dict[str, Any]:
         "collections": [{"name": name, "count": count} for name, count in sorted(collections.items())],
         "file_types": [{"name": name, "count": count} for name, count in sorted(file_types.items())],
         "graph": {"nodes": len(nodes), "edges": len(edges)},
+        "queries": {
+            "total": len(query_events),
+            "average_confidence": round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
+            "trend": _query_trend(query_events),
+            "recent": recent_queries,
+        },
         "recent_documents": [_public_document(document) for document in documents[:8]],
     }
 
@@ -222,3 +242,20 @@ def _public_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
         "paragraph_number": chunk.get("paragraph_number"),
         "text": str(chunk.get("text", ""))[:4000],
     }
+
+
+def _query_trend(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Build a stable seven-day, local-time-independent query series from JSONL."""
+    today = datetime.now(timezone.utc).date()
+    days = [today - timedelta(days=offset) for offset in range(6, -1, -1)]
+    counts = Counter()
+    for event in events:
+        timestamp = event.get("timestamp")
+        if not isinstance(timestamp, str):
+            continue
+        try:
+            parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00")).date()
+        except ValueError:
+            continue
+        counts[parsed.isoformat()] += 1
+    return [{"date": day.isoformat(), "count": counts[day.isoformat()]} for day in days]

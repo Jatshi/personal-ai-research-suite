@@ -27,6 +27,8 @@ compression, CRAG routing, and multi-hop retrieval. Settings changes are preview
 first and require a separate confirmation request before the local YAML changes.
 The Agent sidebar reads its current session's filtered durable-memory summary;
 long-term memory is empty unless explicitly enabled on the backend.
+Dashboard query metrics and the seven-day activity chart are calculated from the
+local RAG JSONL log, not a hosted analytics service.
 
 Browser file uploads use `/kb/upload`; the backend accepts PDF, DOCX, PPTX,
 Markdown, TXT, and HTML, stores each file in the workspace raw-data area, then

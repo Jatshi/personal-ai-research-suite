@@ -50,6 +50,8 @@ def test_workbench_read_only_endpoints():
     health = client.get("/observability/health")
     assert health.status_code == 200
     assert {"llm", "embedding", "index", "storage"}.issubset(health.json())
+    dashboard = client.get("/dashboard/summary").json()
+    assert {"total", "average_confidence", "trend", "recent"}.issubset(dashboard["queries"])
 
 
 def test_agent_workspace_bridge_rejects_path_escape():

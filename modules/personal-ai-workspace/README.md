@@ -315,6 +315,10 @@ The product workbench also exposes a read-only system-health view through
 paths; durable memory remains disabled unless `agent.enable_long_term_memory` is
 explicitly enabled.
 
+The dashboard derives total queries, confidence averages, a seven-day trend, and
+recent query summaries from the local RAG JSONL audit log. It does not transmit
+query history outside the configured local workspace.
+
 ## Phase 6 GraphRAG And Research Crew
 
 Build the SQLite-backed graph index and query it directly or alongside hybrid
