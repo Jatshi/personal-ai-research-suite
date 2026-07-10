@@ -18,6 +18,8 @@ def test_api_validates_search_payload():
     client = TestClient(app)
     res = client.post("/rag/search", json={"query": "", "top_k": 5})
     assert res.status_code == 422
+    assert client.post("/rag/search", json={"query": "RAG", "mode": "made-up"}).status_code == 422
+    assert client.post("/rag/ask", json={"query": "RAG", "query_rewrite": "made-up"}).status_code == 422
 
 
 def test_ask_request_preserves_retrieval_overrides():

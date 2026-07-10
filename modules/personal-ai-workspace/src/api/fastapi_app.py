@@ -5,6 +5,7 @@ import json
 import asyncio
 import uuid
 from pathlib import Path
+from typing import Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,14 +29,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+RetrievalMode = Literal["hybrid", "keyword", "semantic", "graphrag", "hybrid+graphrag"]
+QueryRewriteMode = Literal["none", "hyde", "decomposition"]
+CompressionMode = Literal["none", "token_budget", "extractive"]
+
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
     collection: str | None = None
-    mode: str | None = None
+    mode: RetrievalMode | None = None
     top_k: int = Field(default=5, ge=1, le=50)
-    query_rewrite: str | None = None
-    context_compression: str | None = None
+    query_rewrite: QueryRewriteMode | None = None
+    context_compression: CompressionMode | None = None
     crag_enabled: bool | None = None
     multi_hop_enabled: bool | None = None
 
@@ -43,10 +48,10 @@ class SearchRequest(BaseModel):
 class AskRequest(BaseModel):
     query: str = Field(..., min_length=1)
     collection: str | None = None
-    mode: str | None = None
+    mode: RetrievalMode | None = None
     top_k: int = Field(default=5, ge=1, le=50)
-    query_rewrite: str | None = None
-    context_compression: str | None = None
+    query_rewrite: QueryRewriteMode | None = None
+    context_compression: CompressionMode | None = None
     crag_enabled: bool | None = None
     multi_hop_enabled: bool | None = None
 
