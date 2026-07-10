@@ -37,7 +37,8 @@ and overlap are request-scoped import metadata; they do not rewrite global YAML.
 
 The File Organizer, Thesis Check, and batch Paper Reading views expose constrained
 sibling-module bridge calls using paths below `personal-agent-workspace/workspace/`.
-The organizer is always a dry-run preview, the thesis route is report-only, and
+The organizer produces a dry-run preview first; execution requires a one-time
+approval token and a matching revalidated plan. The thesis route is report-only, and
 batch paper reading writes derived notes only below the sibling module's export
 directory. Keep the API token in browser-safe development environment configuration
 only when the FastAPI server enables token auth.

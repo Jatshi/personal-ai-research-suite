@@ -112,7 +112,10 @@ can consume REST and SSE endpoints without changing local configuration.
   endpoints; write-capable tools stay behind the registry's dry-run/confirmation
   boundary.
 - `/integrations/agent-workspace/organize` invokes only the sibling module's
-  dry-run planner. `/integrations/agent-workspace/thesis-check` invokes its
+  dry-run planner. Its matching `/organize/execute` endpoint accepts only a
+  short-lived approval token created by the preview, re-hashes the current plan
+  before execution, and then invokes the sibling module's audited batch executor.
+  `/integrations/agent-workspace/thesis-check` invokes its
   report-only checker. `/integrations/agent-workspace/read-papers` invokes its
   batch reading workflow and writes derived notes below that module's data
   export directory, never back into the paper source directory. All bridge

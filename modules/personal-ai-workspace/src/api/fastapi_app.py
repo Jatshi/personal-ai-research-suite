@@ -115,6 +115,10 @@ class AgentWorkspacePathRequest(BaseModel):
     path: str = Field(..., min_length=1, max_length=500)
 
 
+class AgentWorkspaceExecuteRequest(AgentWorkspacePathRequest):
+    approval_token: str = Field(..., min_length=16, max_length=100)
+
+
 class SettingsUpdateRequest(BaseModel):
     changes: dict = Field(...)
     confirm: bool = False
@@ -383,6 +387,18 @@ def agent_workspace_organize(payload: AgentWorkspacePathRequest, _: None = Depen
 
     try:
         return run_file_organizer(config, payload.path)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/integrations/agent-workspace/organize/execute")
+def agent_workspace_organize_execute(payload: AgentWorkspaceExecuteRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.integrations.agent_workspace_bridge import execute_file_organizer
+
+    try:
+        return execute_file_organizer(config, payload.path, payload.approval_token)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
