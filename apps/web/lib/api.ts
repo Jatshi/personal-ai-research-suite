@@ -23,3 +23,14 @@ export async function sse<T>(path: string, payload: unknown): Promise<T> {
   if (!match) throw new Error("No result event returned by ScholarMind API");
   return JSON.parse(match[1]) as T;
 }
+
+export async function upload<T>(path: string, form: FormData): Promise<T> {
+  const token = process.env.NEXT_PUBLIC_SCHOLARMIND_API_TOKEN;
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: token ? { "X-API-Key": token } : undefined,
+    body: form,
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json() as Promise<T>;
+}

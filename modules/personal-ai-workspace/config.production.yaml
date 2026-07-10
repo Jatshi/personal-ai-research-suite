@@ -10,6 +10,7 @@ server:
   port: 8000
   api_auth_enabled: true
   api_token_env: PERSONAL_AI_API_TOKEN
+  upload_max_bytes: 104857600
 
 streamlit:
   port: 8501

@@ -20,6 +20,10 @@ Current API-backed routes:
 - Observability: `/observability/logs`
 - Settings: `/settings/public` and `/llm/doctor`
 
+Browser file uploads use `/kb/upload`; the backend accepts PDF, DOCX, PPTX,
+Markdown, TXT, and HTML, stores each file in the workspace raw-data area, then
+uses the normal indexing pipeline.
+
 The File Organizer and Thesis Check views expose read-safe sibling-module bridge
 calls using paths below `personal-agent-workspace/workspace/`. The organizer is
 always a dry-run preview and the thesis route is report-only. Keep the API token

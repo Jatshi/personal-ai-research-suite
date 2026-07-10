@@ -349,6 +349,11 @@ generates reports. Bridge paths must start with `workspace/` inside
 `personal-agent-workspace`; no browser route can pass `--execute` or `--yes` to
 the sibling CLI.
 
+The Import route accepts browser uploads for PDF, DOCX, PPTX, Markdown, TXT, and
+HTML. Uploads are size-limited by `server.upload_max_bytes`, stored under
+`data/raw/uploads/<collection>/`, then passed to the same parser/indexer used by
+CLI ingestion.
+
 For local development, the FastAPI CORS default permits both
 `http://localhost:3000` and `http://127.0.0.1:3000`.
 

@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 import json
 import asyncio
+import uuid
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -104,6 +105,9 @@ class SettingsUpdateRequest(BaseModel):
     confirm: bool = False
 
 
+UPLOAD_EXTENSIONS = {".pdf", ".docx", ".pptx", ".md", ".txt", ".html", ".htm"}
+
+
 def require_api_token(
     authorization: str | None = Header(default=None),
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
@@ -196,6 +200,55 @@ def agent_chat_stream(payload: StreamChatRequest, _: None = Depends(require_api_
 @app.post("/kb/ingest")
 def kb_ingest(payload: IngestRequest, _: None = Depends(require_api_token)) -> dict:
     return ingest_tool(config, _dump_model(payload))
+
+
+@app.post("/kb/upload")
+async def kb_upload(
+    files: list[UploadFile] = File(...),
+    collection: str = Form("personal", min_length=1, max_length=80),
+    tags: str = Form("[]"),
+    _: None = Depends(require_api_token),
+) -> dict:
+    """Persist browser uploads under data/raw before using the normal ingestion path."""
+    from src.config.config_loader import resolve_project_path
+
+    try:
+        parsed_tags = json.loads(tags)
+        if not isinstance(parsed_tags, list) or not all(isinstance(tag, str) for tag in parsed_tags):
+            raise ValueError
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="tags must be a JSON array of strings.") from exc
+    safe_collection = "".join(char for char in collection if char.isalnum() or char in {"-", "_"})
+    if not safe_collection:
+        raise HTTPException(status_code=422, detail="collection must include letters, numbers, '-' or '_'.")
+    upload_root = resolve_project_path(config, config["app"]["data_dir"]) / "raw" / "uploads" / safe_collection
+    upload_root.mkdir(parents=True, exist_ok=True)
+    max_bytes = int(config.get("server", {}).get("upload_max_bytes", 100 * 1024 * 1024))
+    saved: list[str] = []
+    for uploaded in files:
+        filename = Path(uploaded.filename or "").name
+        suffix = Path(filename).suffix.lower()
+        if not filename or suffix not in UPLOAD_EXTENSIONS:
+            raise HTTPException(status_code=415, detail=f"Unsupported upload type: {filename or 'unnamed'}")
+        target = upload_root / f"{uuid.uuid4().hex[:8]}_{filename}"
+        total = 0
+        try:
+            with target.open("wb") as output:
+                while chunk := await uploaded.read(1024 * 1024):
+                    total += len(chunk)
+                    if total > max_bytes:
+                        raise HTTPException(status_code=413, detail=f"Upload exceeds {max_bytes} byte limit: {filename}")
+                    output.write(chunk)
+            saved.append(str(target))
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
+        finally:
+            await uploaded.close()
+    documents: list[dict] = []
+    for path in saved:
+        documents.extend(ingest_tool(config, {"path": path, "collection": safe_collection, "tags": parsed_tags})["documents"])
+    return {"success": True, "collection": safe_collection, "uploaded_files": len(saved), "documents": documents}
 
 
 @app.get("/kb/docs")

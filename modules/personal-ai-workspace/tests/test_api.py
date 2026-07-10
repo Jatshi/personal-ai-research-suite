@@ -62,6 +62,34 @@ def test_api_ingest_payload_validation():
     assert res.status_code == 422
 
 
+def test_api_upload_rejects_unsupported_type():
+    client = TestClient(app)
+    response = client.post(
+        "/kb/upload",
+        data={"collection": "test", "tags": "[]"},
+        files=[("files", ("unsafe.exe", b"not a document", "application/octet-stream"))],
+    )
+    assert response.status_code == 415
+
+
+def test_api_upload_indexes_supported_document(tmp_path):
+    client = TestClient(app)
+    original_data_dir = fastapi_app.config["app"]["data_dir"]
+    try:
+        fastapi_app.config["app"]["data_dir"] = str(tmp_path / "data")
+        response = client.post(
+            "/kb/upload",
+            data={"collection": "upload_test", "tags": '["demo"]'},
+            files=[("files", ("rag.md", b"# RAG\n\nEvidence grounded retrieval.", "text/markdown"))],
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["uploaded_files"] == 1
+        assert body["documents"][0]["collection"] == "upload_test"
+    finally:
+        fastapi_app.config["app"]["data_dir"] = original_data_dir
+
+
 def test_phase6_api_endpoints_exist():
     client = TestClient(app)
     assert client.post("/graph/build", json={}).status_code == 200

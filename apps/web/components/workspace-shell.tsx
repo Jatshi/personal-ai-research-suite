@@ -7,7 +7,7 @@ import {
   Files, FolderInput, GitBranch, LayoutDashboard, ListTree, LoaderCircle, Moon, Network,
   Search, Send, Settings, ShieldCheck, Sparkles, Sun, Wrench,
 } from "lucide-react";
-import { api, sse } from "@/lib/api";
+import { api, sse, upload } from "@/lib/api";
 
 type Health = { ok: boolean; app: string; llm_backend: string; embedding_backend: string };
 type Chunk = { chunk_id?: string; file_name?: string; snippet?: string; text?: string; score?: number; page_number?: number; section_title?: string };
@@ -73,9 +73,10 @@ function AgentPage() {
 }
 
 function ImportPage() {
-  const [path, setPath] = useState(""); const [collection, setCollection] = useState("personal"); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
+  const [path, setPath] = useState(""); const [collection, setCollection] = useState("personal"); const [files, setFiles] = useState<File[]>([]); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
   async function ingest() { if (!path.trim()) return; setBusy(true); try { setResult(await api<RagResponse>("/kb/ingest", { method: "POST", body: JSON.stringify({ path, collection }) })); } catch (error) { setResult({ answer: message(error) }); } finally { setBusy(false); } }
-  return <div className="form-layout"><section className="panel import-zone"><FolderInput size={34}/><h2>Import a local source</h2><p className="muted">The API accepts a file or folder path and indexes supported formats into a named collection.</p><label>Source path<input value={path} onChange={(event) => setPath(event.target.value)} placeholder="D:\\research\\papers"/></label><label>Collection<input value={collection} onChange={(event) => setCollection(event.target.value)} placeholder="personal"/></label><button className="primary wide-button" disabled={busy || !path.trim()} onClick={ingest}>{busy ? "Indexing..." : "Start import"}</button></section><section className="panel"><PanelTitle eyebrow="IMPORT RESULT" title="Indexing status"/><pre>{result ? JSON.stringify(result, null, 2) : "Choose a local path to begin."}</pre></section></div>;
+  async function uploadFiles() { if (!files.length) return; setBusy(true); try { const form = new FormData(); files.forEach((file) => form.append("files", file)); form.append("collection", collection); form.append("tags", "[]"); setResult(await upload<RagResponse>("/kb/upload", form)); setFiles([]); } catch (error) { setResult({ answer: message(error) }); } finally { setBusy(false); } }
+  return <div className="form-layout"><section className="panel import-zone"><FolderInput size={34}/><h2>Import a local source</h2><p className="muted">Select supported files for browser upload, or index a file/folder path visible to the local API.</p><label>Collection<input value={collection} onChange={(event) => setCollection(event.target.value)} placeholder="personal"/></label><label>Upload files<input type="file" multiple accept=".pdf,.docx,.pptx,.md,.txt,.html,.htm" onChange={(event) => setFiles(Array.from(event.target.files ?? []))}/></label>{files.length > 0 && <small>{files.length} file(s) selected</small>}<button className="primary wide-button" disabled={busy || !files.length} onClick={uploadFiles}>{busy ? "Uploading..." : "Upload and index"}</button><div className="import-divider">or index a local path</div><label>Source path<input value={path} onChange={(event) => setPath(event.target.value)} placeholder="D:\\research\\papers"/></label><button className="secondary wide-button" disabled={busy || !path.trim()} onClick={ingest}>Index local path</button></section><section className="panel"><PanelTitle eyebrow="IMPORT RESULT" title="Indexing status"/><pre>{result ? JSON.stringify(result, null, 2) : "Choose files or a local path to begin."}</pre></section></div>;
 }
 
 function PaperReadingPage() {
