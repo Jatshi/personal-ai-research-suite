@@ -27,6 +27,20 @@ def test_api_kb_docs_endpoint():
     assert res.json()["success"] is True
 
 
+def test_workbench_read_only_endpoints():
+    client = TestClient(app)
+    assert client.get("/dashboard/summary").status_code == 200
+    assert client.get("/settings/public").status_code == 200
+    assert client.get("/observability/logs?category=rag").status_code == 200
+    assert client.get("/observability/logs?category=invalid").status_code == 422
+
+
+def test_agent_workspace_bridge_rejects_path_escape():
+    client = TestClient(app)
+    response = client.post("/integrations/agent-workspace/organize", json={"path": "../outside"})
+    assert response.status_code == 422
+
+
 def test_api_ingest_payload_validation():
     client = TestClient(app)
     res = client.post("/kb/ingest", json={"path": "", "collection": "personal"})
@@ -56,3 +70,17 @@ def test_api_token_auth_when_enabled(monkeypatch):
         assert ok.status_code == 200
     finally:
         fastapi_app.config["server"]["api_auth_enabled"] = old
+
+
+def test_api_allows_nextjs_loopback_origin():
+    client = TestClient(app)
+    response = client.options(
+        "/rag/ask/stream",
+        headers={
+            "Origin": "http://127.0.0.1:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"

@@ -21,7 +21,7 @@ registry = build_registry(config)
 app = FastAPI(title="personal-ai-workspace")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.get("server", {}).get("cors_origins", ["http://localhost:3000"]),
+    allow_origins=config.get("server", {}).get("cors_origins", ["http://localhost:3000", "http://127.0.0.1:3000"]),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -93,6 +93,10 @@ class StreamChatRequest(BaseModel):
     collection: str | None = None
     mode: str = Field(default="react", pattern="^(planner|react)$")
     session_id: str = Field(default="default", min_length=1, max_length=120)
+
+
+class AgentWorkspacePathRequest(BaseModel):
+    path: str = Field(..., min_length=1, max_length=500)
 
 
 def require_api_token(
@@ -194,6 +198,16 @@ def kb_docs(collection: str | None = None, _: None = Depends(require_api_token))
     return list_docs_tool(config, {"collection": collection})
 
 
+@app.get("/kb/docs/{doc_id}")
+def kb_document_detail(doc_id: str, chunk_limit: int = 20, _: None = Depends(require_api_token)) -> dict:
+    from src.api.workbench_service import document_detail
+
+    detail = document_detail(config, doc_id, max(1, min(chunk_limit, 100)))
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return detail
+
+
 @app.post("/kb/reindex")
 def kb_reindex(payload: ReindexRequest, _: None = Depends(require_api_token)) -> dict:
     from pathlib import Path
@@ -282,6 +296,30 @@ def research_crew_run(payload: ResearchCrewRequest, _: None = Depends(require_ap
     return run_research_crew(config, payload.topic, payload.collection, payload.top_k)
 
 
+@app.post("/integrations/agent-workspace/organize")
+def agent_workspace_organize(payload: AgentWorkspacePathRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.integrations.agent_workspace_bridge import run_file_organizer
+
+    try:
+        return run_file_organizer(config, payload.path)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/integrations/agent-workspace/thesis-check")
+def agent_workspace_thesis_check(payload: AgentWorkspacePathRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.integrations.agent_workspace_bridge import run_thesis_check
+
+    try:
+        return run_thesis_check(config, payload.path)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @app.post("/evaluation/compare")
 def evaluation_compare(payload: EvaluationCompareRequest, _: None = Depends(require_api_token)) -> dict:
     from src.evaluation.ab_testing import compare_configs
@@ -295,10 +333,27 @@ def llm_doctor(_: None = Depends(require_api_token)) -> dict:
 
 
 @app.get("/observability/logs")
-def logs(_: None = Depends(require_api_token)) -> dict:
-    from src.observability.trace_logger import JsonlLogger
+def logs(category: str | None = None, limit: int = 50, _: None = Depends(require_api_token)) -> dict:
+    from src.api.workbench_service import observability_events
 
-    return {"tool_calls": JsonlLogger(config, "tool_calls.jsonl").tail(50)}
+    try:
+        return observability_events(config, category, max(1, min(limit, 200)))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/dashboard/summary")
+def dashboard(_: None = Depends(require_api_token)) -> dict:
+    from src.api.workbench_service import dashboard_summary
+
+    return dashboard_summary(config)
+
+
+@app.get("/settings/public")
+def settings_public(_: None = Depends(require_api_token)) -> dict:
+    from src.api.workbench_service import public_settings
+
+    return public_settings(config)
 
 
 @app.get("/agent/sessions/{session_id}/memory")

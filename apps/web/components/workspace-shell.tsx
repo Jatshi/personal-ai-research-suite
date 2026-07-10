@@ -2,11 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, Bot, BookOpen, Database, FileCheck2, Files, FolderInput, GitBranch, LayoutDashboard, Moon, Network, Search, Settings, Sun, Wrench } from "lucide-react";
+import {
+  Activity, ArrowUpRight, Bot, BookOpen, CheckCircle2, ChevronRight, Database, FileCheck2,
+  Files, FolderInput, GitBranch, LayoutDashboard, ListTree, LoaderCircle, Moon, Network,
+  Search, Send, Settings, ShieldCheck, Sparkles, Sun, Wrench,
+} from "lucide-react";
 import { api, sse } from "@/lib/api";
 
 type Health = { ok: boolean; app: string; llm_backend: string; embedding_backend: string };
-type SearchResult = { answer?: string; confidence?: number; citations?: string[]; evidence?: Array<{ file_name: string; snippet?: string; score?: number }>; retrieval_trace?: Record<string, unknown>; final_report?: string; steps?: Array<{ tool_name: string; result: unknown }> };
+type Chunk = { chunk_id?: string; file_name?: string; snippet?: string; text?: string; score?: number; page_number?: number; section_title?: string };
+type RagResponse = { answer?: string; confidence?: number; citations?: string[]; evidence?: Chunk[]; results?: Chunk[]; retrieval_trace?: Record<string, unknown>; final_report?: string; steps?: Array<{ tool_name?: string; agent?: string; task?: string; result?: unknown; output?: string }> };
+type Dashboard = { documents: number; chunks: number; collections: Array<{ name: string; count: number }>; file_types: Array<{ name: string; count: number }>; graph: { nodes: number; edges: number }; recent_documents: Array<{ doc_id: string; file_name: string; collection: string; file_type: string; imported_at: string; tags?: string[] }> };
+type LogEvent = { category: string; timestamp?: string; query?: string; goal?: string; success?: boolean; retrieval_mode?: string; final_report?: string; trace_id?: string; [key: string]: unknown };
+type PublicSettings = Record<string, Record<string, unknown>>;
 
 const nav = [
   ["dashboard", "Dashboard", LayoutDashboard], ["import", "Import", FolderInput], ["search", "Search & Ask", Search], ["agent", "AI Assistant", Bot], ["organize", "File Organizer", Files], ["thesis-check", "Thesis Check", FileCheck2], ["paper-reading", "Paper Reading", BookOpen], ["observability", "Observability", Activity], ["mcp", "MCP", Network], ["settings", "Settings", Settings],
@@ -15,60 +23,96 @@ const nav = [
 export function WorkspaceShell({ view }: { view: string }) {
   const [dark, setDark] = useState(true);
   const [health, setHealth] = useState<Health | null>(null);
-  const [query, setQuery] = useState("");
-  const [result, setResult] = useState<SearchResult | null>(null);
-  const [busy, setBusy] = useState(false);
   useEffect(() => { api<Health>("/health").then(setHealth).catch(() => setHealth(null)); }, []);
   const title = useMemo(() => nav.find(([id]) => id === view)?.[1] ?? "Dashboard", [view]);
-  async function run() {
-    if (!query.trim()) return;
-    setBusy(true);
-    try {
-      const path = view === "agent" ? "/agent/chat/stream" : "/rag/ask/stream";
-      setResult(await sse<SearchResult>(path, view === "agent" ? { message: query, mode: "react" } : { query, top_k: 5 }));
-    } finally { setBusy(false); }
-  }
-  async function runWorkflow() {
-    setBusy(true);
-    try {
-      const endpoint = view === "import" ? "/kb/ingest" : view === "paper-reading" ? "/agents/crew/run" : view === "observability" ? "/observability/logs" : view === "settings" ? "/llm/doctor" : "/health";
-      const init = view === "import"
-        ? { method: "POST", body: JSON.stringify({ path: query, collection: "personal" }) }
-        : view === "paper-reading"
-          ? { method: "POST", body: JSON.stringify({ topic: query, top_k: 8 }) }
-          : undefined;
-      setResult(await api<SearchResult>(endpoint, init));
-    } catch (error) {
-      setResult({ answer: error instanceof Error ? error.message : "Workflow failed." });
-    } finally { setBusy(false); }
-  }
   return <main className={dark ? "app dark" : "app"}>
     <aside className="sidebar"><div className="brand"><span className="brand-mark">S</span><span>ScholarMind</span><small>AgentOS</small></div>
       <nav>{nav.map(([id, label, Icon]) => <Link className={id === view ? "nav-item active" : "nav-item"} href={`/${id}`} key={id}><Icon size={17}/><span>{label}</span></Link>)}</nav>
-      <div className="sidebar-foot"><span className="status-dot"/> API {health?.ok ? "connected" : "offline"}</div>
+      <div className="sidebar-foot"><span className={health?.ok ? "status-dot" : "status-dot offline"}/>{health?.ok ? "API connected" : "API offline"}</div>
     </aside>
     <section className="workspace"><header className="topbar"><div><p className="eyebrow">PERSONAL RESEARCH SYSTEM</p><h1>{title}</h1></div><button className="icon-button" title="Toggle theme" onClick={() => setDark(!dark)}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></header>
-      {view === "dashboard" ? <Dashboard health={health}/> : <WorkPanel view={view} query={query} setQuery={setQuery} run={run} runWorkflow={runWorkflow} result={result} busy={busy}/>}</section>
+      <ViewRouter view={view} health={health}/>
+    </section>
   </main>;
 }
 
-function Dashboard({ health }: { health: Health | null }) {
-  return <div className="page-grid"><section className="metrics"><Metric label="Knowledge Base" value="Local" note="Grounded retrieval enabled" icon={<Database/>}/><Metric label="LLM Provider" value={health?.llm_backend ?? "Offline"} note="OpenAI compatible" icon={<Bot/>}/><Metric label="Retrieval" value="Hybrid + Graph" note="Traceable evidence" icon={<GitBranch/>}/><Metric label="Safety" value="Dry-run" note="Approval required for writes" icon={<Wrench/>}/></section>
-    <section className="analytics"><div className="panel wide"><p className="eyebrow">RESEARCH ACTIVITY</p><h2>Query and evidence flow</h2><div className="spark"><i/><i/><i/><i/><i/><i/><i/></div></div><div className="panel"><p className="eyebrow">SYSTEM HEALTH</p><h2>{health?.ok ? "Operational" : "Awaiting API"}</h2><p className="muted">LLM and embedding backends are shown from the live FastAPI health endpoint.</p></div></section>
-    <section className="panel"><p className="eyebrow">OPERATING PRINCIPLE</p><h2>Evidence before action</h2><p className="muted">Search, citations, agent tools, memory, GraphRAG and MCP share one local audit boundary.</p></section></div>;
+function ViewRouter({ view, health }: { view: string; health: Health | null }) {
+  if (view === "dashboard") return <DashboardPage health={health}/>;
+  if (view === "search") return <SearchPage/>;
+  if (view === "agent") return <AgentPage/>;
+  if (view === "import") return <ImportPage/>;
+  if (view === "paper-reading") return <PaperReadingPage/>;
+  if (view === "observability") return <ObservabilityPage/>;
+  if (view === "settings") return <SettingsPage/>;
+  if (view === "mcp") return <McpPage/>;
+  return <CompatibilityPage view={view}/>;
 }
 
-function WorkPanel({ view, query, setQuery, run, runWorkflow, result, busy }: { view: string; query: string; setQuery: (value: string) => void; run: () => void; runWorkflow: () => void; result: SearchResult | null; busy: boolean }) {
-  const interactive = view === "search" || view === "agent";
-  const labels: Record<string, string> = { import: "Import documents into a collection", organize: "Preview safe file organization plans", "thesis-check": "Inspect thesis structure and references", "paper-reading": "Run the five-role research crew", observability: "Review query, tool and agent traces", mcp: "Inspect the official MCP server", settings: "Configure API-backed workspace behavior" };
-  if (!interactive) {
-    const apiReady = ["import", "paper-reading", "observability", "mcp", "settings"].includes(view);
-    const placeholder = view === "import" ? "Absolute path within the workspace..." : view === "paper-reading" ? "Research topic for the five-role crew..." : "";
-    return <div className="page-grid"><section className="panel command"><p className="eyebrow">{view.toUpperCase()}</p><h2>{labels[view]}</h2>{apiReady && <div className="query-box"><Search size={19}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder}/><button className="primary" disabled={busy || ((view === "import" || view === "paper-reading") && !query.trim())} onClick={runWorkflow}>{busy ? "Working" : "Run"}</button></div>}{!apiReady && <p className="muted">This workflow remains available in the compatibility Streamlit application while its safe operation API is migrated to this interface.</p>}{result && <pre>{JSON.stringify(result, null, 2)}</pre>}</section></div>;
-  }
-  return <div className="ask-layout"><section className="answer-column"><div className="query-box"><Search size={19}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === "Enter" && run()} placeholder={view === "agent" ? "Give ScholarMind a research task..." : "Ask your knowledge base..."}/><button className="primary" onClick={run} disabled={busy}>{busy ? "Working" : "Run"}</button></div>
-    <section className="panel answer"><p className="eyebrow">{view === "agent" ? "AGENT RESPONSE" : "GROUNDED ANSWER"}</p><h2>{busy ? "Working through evidence" : result ? "Result" : "Ready"}</h2><pre>{result?.answer ?? result?.final_report ?? "Ask a question to inspect answers, citations, agent steps and retrieval traces."}</pre>{result?.confidence !== undefined && <div className="confidence"><span>Confidence</span><b>{Math.round(result.confidence * 100)}%</b></div>}</section></section>
-    <aside className="evidence-column"><section className="panel"><p className="eyebrow">EVIDENCE</p>{result?.evidence?.length ? result.evidence.map((item, index) => <article className="evidence" key={`${item.file_name}-${index}`}><b>{item.file_name}</b><span>{item.snippet ?? "Source chunk"}</span></article>) : <p className="muted">Retrieved chunks and citations appear here.</p>}</section><section className="panel"><p className="eyebrow">TRACE</p><pre>{result?.retrieval_trace ? JSON.stringify(result.retrieval_trace, null, 2) : "Retrieval and tool traces are available after a run."}</pre></section></aside></div>;
+function DashboardPage({ health }: { health: Health | null }) {
+  const [summary, setSummary] = useState<Dashboard | null>(null);
+  useEffect(() => { api<Dashboard>("/dashboard/summary").then(setSummary).catch(() => setSummary(null)); }, []);
+  return <div className="page-grid">
+    <section className="metrics"><Metric label="Documents" value={summary?.documents?.toString() ?? "-"} note="Indexed local sources" icon={<Database/>}/><Metric label="Chunks" value={summary?.chunks?.toString() ?? "-"} note="Groundable evidence units" icon={<ListTree/>}/><Metric label="Knowledge graph" value={summary ? `${summary.graph.nodes}/${summary.graph.edges}` : "-"} note="Nodes / edges" icon={<GitBranch/>}/><Metric label="LLM provider" value={health?.llm_backend ?? "Offline"} note={health?.ok ? "API is reachable" : "Start FastAPI to connect"} icon={<Bot/>}/></section>
+    <section className="dashboard-grid"><article className="panel chart-panel"><PanelTitle eyebrow="KNOWLEDGE BASE" title="Collection distribution"/><div className="distribution">{summary?.collections?.length ? summary.collections.map((item) => <div className="distribution-row" key={item.name}><span>{item.name}</span><div><i style={{ width: `${Math.max(12, item.count / Math.max(...summary.collections.map((x) => x.count)) * 100)}%` }}/></div><b>{item.count}</b></div>) : <Empty text="Import material to create your first collection."/>}</div></article>
+      <article className="panel"><PanelTitle eyebrow="RETRIEVAL" title="Evidence-first workflow"/><div className="flow"><span>Ingest</span><ChevronRight/><span>Retrieve</span><ChevronRight/><span>Verify</span><ChevronRight/><span>Answer</span></div><p className="muted">Hybrid retrieval, graph expansion, citation grounding and audit events share one workspace boundary.</p></article></section>
+    <section className="panel"><PanelTitle eyebrow="RECENT MATERIAL" title="Recently indexed documents"/>{summary?.recent_documents?.length ? <div className="document-list">{summary.recent_documents.map((doc) => <div className="document-row" key={doc.doc_id}><div><b>{doc.file_name}</b><span>{doc.collection} · {doc.file_type}</span></div><time>{doc.imported_at?.slice(0, 10)}</time></div>)}</div> : <Empty text="No indexed documents yet."/>}</section>
+  </div>;
 }
 
+function SearchPage() {
+  const [query, setQuery] = useState(""); const [mode, setMode] = useState("hybrid"); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
+  async function run() { if (!query.trim()) return; setBusy(true); try { setResult(await sse<RagResponse>("/rag/ask/stream", { query, mode, top_k: 5 })); } catch (error) { setResult({ answer: message(error) }); } finally { setBusy(false); } }
+  const evidence = result?.evidence ?? result?.results ?? [];
+  return <div className="ask-layout"><section className="answer-column"><SearchBox value={query} onChange={setQuery} onRun={run} busy={busy} placeholder="Ask your knowledge base..."/><div className="segmented">{["hybrid", "keyword", "semantic", "graphrag"].map((item) => <button className={item === mode ? "selected" : ""} onClick={() => setMode(item)} key={item}>{item}</button>)}</div><section className="panel answer"><PanelTitle eyebrow="GROUNDED ANSWER" title={busy ? "Retrieving evidence" : result ? "Answer" : "Ready"}/><div className="markdown-output">{result?.answer ?? "Ask a question to inspect the answer, citations and retrieval trace."}</div>{result?.confidence !== undefined && <Confidence value={result.confidence}/>}</section></section><aside className="evidence-column"><section className="panel"><PanelTitle eyebrow="RETRIEVAL EVIDENCE" title={`${evidence.length} source chunks`}/>{evidence.length ? evidence.map((item, index) => <details className="evidence" key={item.chunk_id ?? index}><summary><span><b>{item.file_name ?? "Source chunk"}</b><small>{item.section_title || item.page_number ? `${item.section_title ?? ""} ${item.page_number ? `p.${item.page_number}` : ""}` : item.chunk_id}</small></span><em>{Math.round((item.score ?? 0) * 100)}%</em></summary><p>{item.snippet ?? item.text}</p></details>) : <Empty text="Evidence chunks will appear here."/>}</section><section className="panel trace"><PanelTitle eyebrow="RETRIEVAL TRACE" title="Decision record"/><pre>{result?.retrieval_trace ? JSON.stringify(result.retrieval_trace, null, 2) : "No query trace yet."}</pre></section></aside></div>;
+}
+
+function AgentPage() {
+  const [goal, setGoal] = useState(""); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
+  async function run() { if (!goal.trim()) return; setBusy(true); try { setResult(await sse<RagResponse>("/agent/chat/stream", { message: goal, mode: "react", session_id: "web-workbench" })); } catch (error) { setResult({ final_report: message(error) }); } finally { setBusy(false); } }
+  return <div className="agent-layout"><section className="answer-column"><section className="panel chat-panel"><PanelTitle eyebrow="AI ASSISTANT" title="Plan, retrieve and act with approval"/><div className="chat-message assistant">{result?.final_report ?? "Describe a research task. The assistant will use the configured planner or ReAct loop and preserve dry-run confirmation rules."}</div>{result?.steps?.map((step, index) => <details className="agent-step" key={index}><summary><CheckCircle2 size={15}/><span>{step.agent ?? step.tool_name ?? step.task ?? `Step ${index + 1}`}</span></summary><pre>{JSON.stringify(step.result ?? step.output ?? step, null, 2)}</pre></details>)}<SearchBox value={goal} onChange={setGoal} onRun={run} busy={busy} placeholder="Give ScholarMind a research task..."/></section></section><aside className="evidence-column"><section className="panel"><PanelTitle eyebrow="SAFETY" title="Execution boundary"/><p className="muted">Write operations are planned first. High-risk operations remain dry runs until explicit confirmation is supplied to the backend.</p></section><section className="panel"><PanelTitle eyebrow="SESSION" title="Working memory"/><p className="muted">Session `web-workbench` retains task observations; long-term memory follows the server configuration.</p></section></aside></div>;
+}
+
+function ImportPage() {
+  const [path, setPath] = useState(""); const [collection, setCollection] = useState("personal"); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
+  async function ingest() { if (!path.trim()) return; setBusy(true); try { setResult(await api<RagResponse>("/kb/ingest", { method: "POST", body: JSON.stringify({ path, collection }) })); } catch (error) { setResult({ answer: message(error) }); } finally { setBusy(false); } }
+  return <div className="form-layout"><section className="panel import-zone"><FolderInput size={34}/><h2>Import a local source</h2><p className="muted">The API accepts a file or folder path and indexes supported formats into a named collection.</p><label>Source path<input value={path} onChange={(event) => setPath(event.target.value)} placeholder="D:\\research\\papers"/></label><label>Collection<input value={collection} onChange={(event) => setCollection(event.target.value)} placeholder="personal"/></label><button className="primary wide-button" disabled={busy || !path.trim()} onClick={ingest}>{busy ? "Indexing..." : "Start import"}</button></section><section className="panel"><PanelTitle eyebrow="IMPORT RESULT" title="Indexing status"/><pre>{result ? JSON.stringify(result, null, 2) : "Choose a local path to begin."}</pre></section></div>;
+}
+
+function PaperReadingPage() {
+  const [topic, setTopic] = useState(""); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
+  async function runCrew() { if (!topic.trim()) return; setBusy(true); try { setResult(await api<RagResponse>("/agents/crew/run", { method: "POST", body: JSON.stringify({ topic, top_k: 8 }) })); } catch (error) { setResult({ final_report: message(error) }); } finally { setBusy(false); } }
+  return <div className="page-grid"><section className="panel command"><PanelTitle eyebrow="FIVE-ROLE CREW" title="Generate an evidence-grounded research note"/><SearchBox value={topic} onChange={setTopic} onRun={runCrew} busy={busy} placeholder="Topic or paper question..."/>{result?.steps?.length ? <div className="crew-steps">{result.steps.map((step, index) => <div key={index}><span>{index + 1}</span><b>{step.agent ?? step.task}</b><small>Completed</small></div>)}</div> : <p className="muted">Reader, Method, Experiment, Critic and Writer use shared retrieved evidence.</p>}</section>{result && <section className="panel"><PanelTitle eyebrow="RESEARCH NOTE" title="Crew synthesis"/><div className="markdown-output">{result.final_report ?? result.answer}</div></section>}</div>;
+}
+
+function ObservabilityPage() {
+  const [category, setCategory] = useState("rag"); const [events, setEvents] = useState<LogEvent[]>([]); const [error, setError] = useState("");
+  useEffect(() => { api<{ events: LogEvent[] }>(`/observability/logs?category=${category}&limit=50`).then((value) => { setEvents(value.events); setError(""); }).catch((err) => setError(message(err))); }, [category]);
+  return <div className="page-grid"><div className="segmented">{["rag", "tool", "agent", "multi_agent", "evaluation"].map((item) => <button key={item} className={item === category ? "selected" : ""} onClick={() => setCategory(item)}>{item.replace("_", " ")}</button>)}</div><section className="panel"><PanelTitle eyebrow="JSONL OBSERVABILITY" title={`${events.length} recent events`}/>{error ? <p className="error-text">{error}</p> : events.length ? <div className="log-list">{events.map((event, index) => <details key={`${event.trace_id ?? "event"}-${index}`}><summary><span><b>{event.query ?? event.goal ?? event.category}</b><small>{event.timestamp ?? "No timestamp"}</small></span><em>{event.success === false ? "failed" : "recorded"}</em></summary><pre>{JSON.stringify(event, null, 2)}</pre></details>)}</div> : <Empty text="No events recorded for this category."/>}</section></div>;
+}
+
+function SettingsPage() {
+  const [settings, setSettings] = useState<PublicSettings | null>(null); const [doctor, setDoctor] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => { api<PublicSettings>("/settings/public").then(setSettings).catch(() => setSettings(null)); }, []);
+  async function check() { try { setDoctor(await api<Record<string, unknown>>("/llm/doctor")); } catch (error) { setDoctor({ error: message(error) }); } }
+  return <div className="settings-grid">{settings ? Object.entries(settings).filter(([name]) => name !== "success").map(([name, values]) => <section className="panel" key={name}><PanelTitle eyebrow="CONFIGURATION" title={name.replace("_", " ")}/><dl>{Object.entries(values).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{String(value)}</dd></div>)}</dl></section>) : <section className="panel"><Empty text="Unable to load public settings."/></section>}<section className="panel"><PanelTitle eyebrow="CONNECTION" title="Validate configured provider"/><p className="muted">This read-only diagnostic never exposes API keys in the browser.</p><button className="primary" onClick={check}>Run doctor</button>{doctor && <pre>{JSON.stringify(doctor, null, 2)}</pre>}</section></div>;
+}
+
+function McpPage() { return <div className="page-grid"><section className="panel"><PanelTitle eyebrow="MCP GATEWAY" title="Official SDK integration"/><p className="muted">The local MCP toolkit publishes FastMCP tools, resources and prompts. Run `python -m src.cli doctor-mcp` inside the MCP module to inspect the active server and client templates.</p><div className="mcp-list"><span>Tools</span><span>Resources</span><span>Prompts</span></div></section><section className="panel"><PanelTitle eyebrow="CLIENT CONFIGURATION" title="Keep credentials outside configuration files"/><pre>{`{\n  "mcpServers": {\n    "scholarmind": {\n      "command": "python",\n      "args": ["-m", "src.cli", "serve"]\n    }\n  }\n}`}</pre></section></div>; }
+
+function CompatibilityPage({ view }: { view: string }) {
+  const [path, setPath] = useState(""); const [result, setResult] = useState<RagResponse | null>(null); const [busy, setBusy] = useState(false);
+  const organizing = view === "organize";
+  const title = organizing ? "File Organizer" : "Thesis Check";
+  const description = organizing
+    ? "Create a dry-run organization plan through the Personal Agent Workspace. No rename, move or delete operation is executed by this route."
+    : "Run the existing thesis structure and reference checker through the Personal Agent Workspace. It generates reports but never edits the thesis source.";
+  async function run() { if (!path.trim()) return; setBusy(true); try { setResult(await api<RagResponse>(`/integrations/agent-workspace/${organizing ? "organize" : "thesis-check"}`, { method: "POST", body: JSON.stringify({ path }) })); } catch (error) { setResult({ answer: message(error) }); } finally { setBusy(false); } }
+  return <div className="form-layout"><section className="panel compatibility"><ShieldCheck size={30}/><h2>{title}</h2><p className="muted">{description}</p><label>Path below `personal-agent-workspace`<input value={path} onChange={(event) => setPath(event.target.value)} placeholder={organizing ? "workspace/papers/to-organize" : "workspace/thesis/thesis.md"}/></label><button className="primary wide-button" onClick={run} disabled={busy || !path.trim()}>{busy ? "Checking..." : organizing ? "Preview dry-run plan" : "Run thesis check"}</button><a className="text-link" href="http://127.0.0.1:8501" target="_blank">Open Streamlit workspace <ArrowUpRight size={15}/></a></section><section className="panel"><PanelTitle eyebrow="BRIDGE RESULT" title={organizing ? "Safe operation preview" : "Check report status"}/><pre>{result ? JSON.stringify(result, null, 2) : "Choose a workspace-relative path to begin."}</pre></section></div>;
+}
+
+function SearchBox({ value, onChange, onRun, busy, placeholder }: { value: string; onChange: (value: string) => void; onRun: () => void; busy: boolean; placeholder: string }) { return <div className="query-box"><Search size={19}/><input value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => event.key === "Enter" && onRun()} placeholder={placeholder}/><button className="primary" onClick={onRun} disabled={busy}>{busy ? <LoaderCircle className="spin" size={16}/> : <Send size={16}/>}<span>{busy ? "Working" : "Run"}</span></button></div>; }
+function PanelTitle({ eyebrow, title }: { eyebrow: string; title: string }) { return <div className="panel-title"><p className="eyebrow">{eyebrow}</p><h2>{title}</h2></div>; }
 function Metric({ label, value, note, icon }: { label: string; value: string; note: string; icon: React.ReactNode }) { return <article className="metric"><div className="metric-icon">{icon}</div><p>{label}</p><h2>{value}</h2><span>{note}</span></article>; }
+function Confidence({ value }: { value: number }) { const percentage = Math.max(0, Math.min(100, Math.round(value * 100))); return <div className="confidence"><span>Grounding confidence</span><div><i style={{ width: `${percentage}%` }}/></div><b>{percentage}%</b></div>; }
+function Empty({ text }: { text: string }) { return <div className="empty"><Sparkles size={18}/><span>{text}</span></div>; }
+function message(error: unknown) { return error instanceof Error ? error.message : "The request could not be completed."; }

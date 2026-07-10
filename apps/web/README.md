@@ -8,5 +8,20 @@ npm install
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-It consumes FastAPI REST and SSE endpoints. Keep the API token in browser-safe
-development environment configuration only when the FastAPI server enables token auth.
+It consumes FastAPI REST and SSE endpoints.
+
+Current API-backed routes:
+
+- Dashboard: `/dashboard/summary`
+- Import: `/kb/ingest`
+- Search: `/rag/ask/stream`
+- Agent: `/agent/chat/stream`
+- Paper Reading: `/agents/crew/run`
+- Observability: `/observability/logs`
+- Settings: `/settings/public` and `/llm/doctor`
+
+The File Organizer and Thesis Check views expose read-safe sibling-module bridge
+calls using paths below `personal-agent-workspace/workspace/`. The organizer is
+always a dry-run preview and the thesis route is report-only. Keep the API token
+in browser-safe development environment configuration only when the FastAPI server
+enables token auth.

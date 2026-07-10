@@ -88,11 +88,28 @@ configuration A/B comparisons, while optional RAGAS evaluation uses production
 extras and the configured OpenAI-compatible evaluator endpoints. The `apps/web`
 Next.js application consumes the FastAPI REST/SSE API in parallel with Streamlit.
 
+The workbench API has a deliberately read-only projection layer in
+`src/api/workbench_service.py`. It exposes dashboard aggregates, document details,
+public non-secret settings, and merged JSONL events. This prevents the browser from
+reading SQLite files or configuration secrets directly. The API permits both
+`localhost:3000` and `127.0.0.1:3000` by default so the Next.js development server
+can consume REST and SSE endpoints without changing local configuration.
+
 ## API And UI
 
 - CLI, FastAPI, Streamlit, and MCP-like stdio all call the same tool/retrieval layers.
 - FastAPI request bodies are Pydantic-validated.
 - API token protection can be enabled with `server.api_auth_enabled: true`.
+- `/dashboard/summary`, `/kb/docs/{doc_id}`, `/observability/logs`, and
+  `/settings/public` are read-only workbench endpoints.
+- `/rag/ask/stream` and `/agent/chat/stream` remain the streaming workbench
+  endpoints; write-capable tools stay behind the registry's dry-run/confirmation
+  boundary.
+- `/integrations/agent-workspace/organize` invokes only the sibling module's
+  dry-run planner. `/integrations/agent-workspace/thesis-check` invokes its
+  report-only checker. Both accept only `workspace/...` relative paths, pass
+  arguments through an explicit subprocess list, and never forward execution
+  flags such as `--execute` or `--yes`.
 
 ## Observability
 

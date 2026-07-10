@@ -340,9 +340,17 @@ npm run dev
 ```
 
 It provides Dashboard, Import, Search, Agent, File Organizer, Thesis Check, Paper
-Reading, Observability, MCP, and Settings routes. RAG and Agent screens consume
-FastAPI SSE endpoints; all other routes remain compatible with existing Streamlit
-workflows during migration.
+Reading, Observability, MCP, and Settings routes. Dashboard, Import, Search, Agent,
+Paper Reading, Observability, MCP diagnostics, and public Settings use FastAPI
+REST/SSE endpoints. File Organizer and Thesis Check keep their Streamlit
+compatibility workflow for full operation, and also expose a constrained monorepo
+bridge: the organizer invokes dry-run planning only, while the thesis checker only
+generates reports. Bridge paths must start with `workspace/` inside
+`personal-agent-workspace`; no browser route can pass `--execute` or `--yes` to
+the sibling CLI.
+
+For local development, the FastAPI CORS default permits both
+`http://localhost:3000` and `http://127.0.0.1:3000`.
 
 ## Agent Harness
 

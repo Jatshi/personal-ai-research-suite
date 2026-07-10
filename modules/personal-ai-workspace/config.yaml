@@ -90,6 +90,10 @@ agent:
   enable_long_term_memory: false
   short_term_turn_limit: 12
 
+integrations:
+  agent_workspace_root: ../personal-agent-workspace
+  agent_workspace_timeout_seconds: 120
+
 multi_agent:
   enabled: true
   roles:
