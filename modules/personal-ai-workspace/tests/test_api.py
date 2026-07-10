@@ -102,6 +102,8 @@ def test_api_ingest_payload_validation():
     client = TestClient(app)
     res = client.post("/kb/ingest", json={"path": "", "collection": "personal"})
     assert res.status_code == 422
+    invalid = client.post("/kb/ingest", json={"path": "examples/sample_docs", "chunk_size": 200, "chunk_overlap": 200})
+    assert invalid.status_code == 422
 
 
 def test_api_upload_rejects_unsupported_type():

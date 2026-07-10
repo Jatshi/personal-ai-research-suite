@@ -15,7 +15,18 @@ from src.storage.sqlite_store import SQLiteStore
 
 
 def ingest_tool(config: dict[str, Any], args: dict[str, Any]) -> dict[str, Any]:
-    docs = ingest_path(config, args["path"], args.get("collection", "personal"), tags=args.get("tags") or [])
+    effective_config = copy.deepcopy(config)
+    chunk_size = args.get("chunk_size")
+    chunk_overlap = args.get("chunk_overlap")
+    if chunk_size is not None:
+        effective_config["chunking"]["chunk_size"] = int(chunk_size)
+    if chunk_overlap is not None:
+        effective_config["chunking"]["chunk_overlap"] = int(chunk_overlap)
+    size = int(effective_config["chunking"]["chunk_size"])
+    overlap = int(effective_config["chunking"]["chunk_overlap"])
+    if not 200 <= size <= 2000 or not 0 <= overlap <= 500 or overlap >= size:
+        raise ValueError("chunk_size must be 200-2000 and chunk_overlap must be 0-500 and smaller than chunk_size.")
+    docs = ingest_path(effective_config, args["path"], args.get("collection", "personal"), tags=args.get("tags") or [])
     return {"success": True, "documents": docs}
 
 

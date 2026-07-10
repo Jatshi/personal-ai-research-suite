@@ -32,7 +32,8 @@ local RAG JSONL log, not a hosted analytics service.
 
 Browser file uploads use `/kb/upload`; the backend accepts PDF, DOCX, PPTX,
 Markdown, TXT, and HTML, stores each file in the workspace raw-data area, then
-uses the normal indexing pipeline.
+uses the normal indexing pipeline. Collection, comma-separated tags, chunk size,
+and overlap are request-scoped import metadata; they do not rewrite global YAML.
 
 The File Organizer, Thesis Check, and batch Paper Reading views expose constrained
 sibling-module bridge calls using paths below `personal-agent-workspace/workspace/`.

@@ -65,7 +65,9 @@ class AgentRunRequest(BaseModel):
 class IngestRequest(BaseModel):
     path: str = Field(..., min_length=1)
     collection: str = "personal"
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
+    chunk_size: int | None = Field(default=None, ge=200, le=2000)
+    chunk_overlap: int | None = Field(default=None, ge=0, le=500)
 
 
 class ReindexRequest(BaseModel):
@@ -212,7 +214,10 @@ def agent_chat_stream(payload: StreamChatRequest, _: None = Depends(require_api_
 
 @app.post("/kb/ingest")
 def kb_ingest(payload: IngestRequest, _: None = Depends(require_api_token)) -> dict:
-    return ingest_tool(config, _dump_model(payload))
+    try:
+        return ingest_tool(config, _dump_model(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/kb/upload")
@@ -220,6 +225,8 @@ async def kb_upload(
     files: list[UploadFile] = File(...),
     collection: str = Form("personal", min_length=1, max_length=80),
     tags: str = Form("[]"),
+    chunk_size: int | None = Form(default=None),
+    chunk_overlap: int | None = Form(default=None),
     _: None = Depends(require_api_token),
 ) -> dict:
     """Persist browser uploads under data/raw before using the normal ingestion path."""
@@ -260,7 +267,10 @@ async def kb_upload(
             await uploaded.close()
     documents: list[dict] = []
     for path in saved:
-        documents.extend(ingest_tool(config, {"path": path, "collection": safe_collection, "tags": parsed_tags})["documents"])
+        try:
+            documents.extend(ingest_tool(config, {"path": path, "collection": safe_collection, "tags": parsed_tags, "chunk_size": chunk_size, "chunk_overlap": chunk_overlap})["documents"])
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"success": True, "collection": safe_collection, "uploaded_files": len(saved), "documents": documents}
 
 
