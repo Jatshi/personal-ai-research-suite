@@ -345,9 +345,11 @@ Paper Reading, Observability, MCP diagnostics, and public Settings use FastAPI
 REST/SSE endpoints. File Organizer and Thesis Check keep their Streamlit
 compatibility workflow for full operation, and also expose a constrained monorepo
 bridge: the organizer invokes dry-run planning only, while the thesis checker only
-generates reports. Bridge paths must start with `workspace/` inside
-`personal-agent-workspace`; no browser route can pass `--execute` or `--yes` to
-the sibling CLI.
+generates reports. The Paper Reading page additionally provides a batch bridge to
+the sibling multi-agent reading workflow; it reads a `workspace/...` folder and
+exports derived notes and a literature table, without modifying source papers.
+Bridge paths must start with `workspace/` inside `personal-agent-workspace`; no
+browser route can pass `--execute` or `--yes` to the sibling CLI.
 
 The Import route accepts browser uploads for PDF, DOCX, PPTX, Markdown, TXT, and
 HTML. Uploads are size-limited by `server.upload_max_bytes`, stored under

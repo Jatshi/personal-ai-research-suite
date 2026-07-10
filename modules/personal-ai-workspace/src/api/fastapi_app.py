@@ -383,6 +383,18 @@ def agent_workspace_thesis_check(payload: AgentWorkspacePathRequest, _: None = D
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@app.post("/integrations/agent-workspace/read-papers")
+def agent_workspace_read_papers(payload: AgentWorkspacePathRequest, _: None = Depends(require_api_token)) -> dict:
+    from src.integrations.agent_workspace_bridge import run_paper_reading
+
+    try:
+        return run_paper_reading(config, payload.path)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @app.get("/integrations/mcp/doctor")
 def mcp_doctor(_: None = Depends(require_api_token)) -> dict:
     from src.integrations.agent_workspace_bridge import run_mcp_doctor

@@ -16,7 +16,8 @@ production gates that require external packages and an OpenAI-compatible provide
 - Product UI: Next.js production build, browser-tested SSE RAG answer with
   evidence/trace, and a dry-run File Organizer bridge.
 - Cross-module bridge: only `workspace/...` paths are accepted; organizer calls
-  cannot receive `--execute` or `--yes`; thesis calls are report-only.
+  cannot receive `--execute` or `--yes`; thesis calls are report-only and batch
+  paper reading exports derived notes without modifying source papers.
 
 Reproduce the local regression:
 

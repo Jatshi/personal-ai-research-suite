@@ -107,9 +107,12 @@ can consume REST and SSE endpoints without changing local configuration.
   boundary.
 - `/integrations/agent-workspace/organize` invokes only the sibling module's
   dry-run planner. `/integrations/agent-workspace/thesis-check` invokes its
-  report-only checker. Both accept only `workspace/...` relative paths, pass
-  arguments through an explicit subprocess list, and never forward execution
-  flags such as `--execute` or `--yes`.
+  report-only checker. `/integrations/agent-workspace/read-papers` invokes its
+  batch reading workflow and writes derived notes below that module's data
+  export directory, never back into the paper source directory. All bridge
+  routes accept only `workspace/...` relative paths, pass arguments through an
+  explicit subprocess list, and never forward execution flags such as
+  `--execute` or `--yes`.
 
 ## Observability
 

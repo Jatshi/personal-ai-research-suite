@@ -39,6 +39,20 @@ def test_agent_workspace_bridge_rejects_path_escape():
     client = TestClient(app)
     response = client.post("/integrations/agent-workspace/organize", json={"path": "../outside"})
     assert response.status_code == 422
+    papers = client.post("/integrations/agent-workspace/read-papers", json={"path": "../outside"})
+    assert papers.status_code == 422
+
+
+def test_agent_workspace_paper_reading_bridge_endpoint(monkeypatch):
+    client = TestClient(app)
+    expected = {"success": True, "command": "read-papers", "path": "workspace/papers"}
+    monkeypatch.setattr(
+        "src.integrations.agent_workspace_bridge.run_paper_reading",
+        lambda _config, path: {**expected, "path": path},
+    )
+    response = client.post("/integrations/agent-workspace/read-papers", json={"path": "workspace/papers"})
+    assert response.status_code == 200
+    assert response.json() == expected
 
 
 def test_mcp_doctor_bridge_endpoint():

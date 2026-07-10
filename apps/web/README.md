@@ -16,7 +16,8 @@ Current API-backed routes:
 - Import: `/kb/ingest`
 - Search: `/rag/ask/stream`
 - Agent: `/agent/chat/stream`
-- Paper Reading: `/agents/crew/run`
+- Paper Reading: `/agents/crew/run` and
+  `/integrations/agent-workspace/read-papers`
 - Observability: `/observability/logs`
 - Settings: `/settings/public` and `/llm/doctor`
 
@@ -24,8 +25,9 @@ Browser file uploads use `/kb/upload`; the backend accepts PDF, DOCX, PPTX,
 Markdown, TXT, and HTML, stores each file in the workspace raw-data area, then
 uses the normal indexing pipeline.
 
-The File Organizer and Thesis Check views expose read-safe sibling-module bridge
-calls using paths below `personal-agent-workspace/workspace/`. The organizer is
-always a dry-run preview and the thesis route is report-only. Keep the API token
-in browser-safe development environment configuration only when the FastAPI server
-enables token auth.
+The File Organizer, Thesis Check, and batch Paper Reading views expose constrained
+sibling-module bridge calls using paths below `personal-agent-workspace/workspace/`.
+The organizer is always a dry-run preview, the thesis route is report-only, and
+batch paper reading writes derived notes only below the sibling module's export
+directory. Keep the API token in browser-safe development environment configuration
+only when the FastAPI server enables token auth.

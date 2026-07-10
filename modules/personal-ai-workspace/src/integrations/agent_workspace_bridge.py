@@ -15,6 +15,32 @@ def run_thesis_check(config: dict[str, Any], path: str) -> dict[str, Any]:
     return _run_agent_cli(config, "check-thesis", path)
 
 
+def run_paper_reading(config: dict[str, Any], path: str) -> dict[str, Any]:
+    root = _agent_workspace_root(config)
+    relative_path = _safe_relative_path(path)
+    output = "./data/exports/web-paper-notes"
+    completed = subprocess.run(
+        [sys.executable, "-m", "src.cli", "read-papers", "--path", relative_path, "--output", output],
+        cwd=root,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=int(config.get("integrations", {}).get("agent_workspace_timeout_seconds", 120)),
+        check=False,
+    )
+    if completed.returncode:
+        raise RuntimeError(_safe_error(completed.stderr or completed.stdout))
+    return {
+        "success": True,
+        "module": "personal-agent-workspace",
+        "command": "read-papers",
+        "path": relative_path,
+        "output": output,
+        "result": _parse_cli_json(completed.stdout),
+    }
+
+
 def run_mcp_doctor(config: dict[str, Any]) -> dict[str, Any]:
     root = _sibling_root(config, "mcp_toolkit_root", "../local-mcp-toolkit")
     completed = subprocess.run(
