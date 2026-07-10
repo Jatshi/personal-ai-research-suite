@@ -44,7 +44,9 @@ def _run_agent_cli(config: dict[str, Any], command: str, path: str) -> dict[str,
 
 def _agent_workspace_root(config: dict[str, Any]) -> Path:
     configured = config.get("integrations", {}).get("agent_workspace_root")
-    root = Path(configured).resolve() if configured else Path(config["_project_root"]).parent / "personal-agent-workspace"
+    project_root = Path(config["_project_root"])
+    candidate = Path(configured) if configured else Path("../personal-agent-workspace")
+    root = candidate.resolve() if candidate.is_absolute() else (project_root / candidate).resolve()
     if not (root / "src" / "cli.py").exists():
         raise RuntimeError(f"Personal Agent Workspace is unavailable: {root}")
     return root
