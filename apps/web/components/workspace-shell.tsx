@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Activity, ArrowUpRight, Bot, BookOpen, CheckCircle2, ChevronRight, Database, FileCheck2,
+  Activity, ArrowUpRight, Bell, Bot, BookOpen, CheckCircle2, ChevronRight, CircleUserRound, Database, FileCheck2,
   Files, FolderInput, GitBranch, LayoutDashboard, ListTree, LoaderCircle, Menu, Moon, Network,
   Search, Send, Settings, ShieldCheck, Sparkles, Sun, Wrench, X,
 } from "lucide-react";
@@ -41,7 +41,7 @@ export function WorkspaceShell({ view }: { view: string }) {
       <nav>{nav.map(([id, label, Icon]) => <Link onClick={() => setMobileNav(false)} className={id === view ? "nav-item active" : "nav-item"} href={`/${id}`} key={id}><Icon size={17}/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-foot"><span className={health?.ok ? "status-dot" : "status-dot offline"}/>{health?.ok ? "API connected" : "API offline"}</div>
     </aside>{mobileNav && <button className="nav-backdrop" aria-label="Close navigation" onClick={() => setMobileNav(false)}/>} 
-    <section className="workspace"><header className="topbar"><div className="title-wrap"><button className="icon-button mobile-menu" title="Open navigation" onClick={() => setMobileNav(true)}><Menu size={18}/></button><div><p className="eyebrow">PERSONAL RESEARCH SYSTEM</p><h1>{title}</h1></div></div><div className="top-actions"><button className="command-trigger" onClick={() => setPalette(true)}><Search size={15}/><span>Search</span><kbd>Ctrl K</kbd></button><button className="icon-button" title="Toggle theme" onClick={() => setDark(!dark)}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></div></header>
+    <section className="workspace"><header className="topbar"><div className="title-wrap"><button className="icon-button mobile-menu" title="Open navigation" onClick={() => setMobileNav(true)}><Menu size={18}/></button><div><p className="eyebrow">PERSONAL RESEARCH SYSTEM</p><h1>{title}</h1></div></div><div className="top-actions"><button className="command-trigger" onClick={() => setPalette(true)}><Search size={15}/><span>Search</span><kbd>Ctrl K</kbd></button><span className={health?.ok ? "top-status" : "top-status offline"} title={health?.ok ? `${health.llm_backend} connected` : "API offline"}>{health?.ok ? "Model ready" : "Offline"}</span><button className="icon-button" title="Notifications are recorded in Observability"><Bell size={18}/></button><button className="icon-button" title="Local workspace profile"><CircleUserRound size={18}/></button><button className="icon-button" title="Toggle theme" onClick={() => setDark(!dark)}>{dark ? <Sun size={18}/> : <Moon size={18}/>}</button></div></header>
       <ViewRouter view={view} health={health}/>
     </section>{toast && <button className="toast toast-error" onClick={() => setToast(null)}>{toast}</button>}{palette && <div className="palette-backdrop" onMouseDown={() => setPalette(false)}><section className="command-palette" onMouseDown={(event) => event.stopPropagation()}><header><Search size={17}/><input autoFocus value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} placeholder="Search pages..."/><button className="icon-button" onClick={() => setPalette(false)}><X size={16}/></button></header><div>{matchingNav.map(([id, label, Icon]) => <Link href={`/${id}`} onClick={() => setPalette(false)} key={id}><Icon size={16}/><span>{label}</span></Link>)}</div></section></div>}
   </main>;
