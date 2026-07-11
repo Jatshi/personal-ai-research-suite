@@ -37,6 +37,9 @@ The project runs in offline mock mode by default, but it also includes OpenAI-co
 Phase 6 implementation and verification boundaries are tracked in
 [English](docs/en/PHASE6_P1_P2_VERIFICATION.md) and
 [中文](docs/cn/PHASE6_P1_P2_VERIFICATION.md).
+For the final requirement-by-requirement evidence matrix, see
+[English](docs/en/PHASE6_COMPLETION_AUDIT.md) and
+[中文](docs/cn/PHASE6_COMPLETION_AUDIT.md).
 
 ## Demo
 
@@ -227,6 +230,7 @@ personal-ai-research-suite/
 - [开发文档：personal-ai-workspace](docs/cn/DEVELOPMENT_personal-ai-workspace.md)
 - [使用文档：local-mcp-toolkit](docs/cn/USAGE_local-mcp-toolkit.md)
 - [开发文档：local-mcp-toolkit](docs/cn/DEVELOPMENT_local-mcp-toolkit.md)
+- [Phase 6 完成度验收](docs/cn/PHASE6_COMPLETION_AUDIT.md)
 - [中文演示录制指南](docs/demo/DEMO_RECORDING_GUIDE.md)
 
 ### English
