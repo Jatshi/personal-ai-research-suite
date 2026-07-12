@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -68,8 +69,29 @@ class ReActAgent:
             state.steps.append(step)
             if recovery:
                 log_event(self.config, "agent_recovery.jsonl", {"goal": goal, "session_id": session_id, "tool_name": call.name, **recovery})
-            state.messages.append({"role": "assistant", "content": response.content or "", "tool_calls": [{"name": call.name, "arguments": call.arguments}]})
-            state.messages.append({"role": "tool", "name": call.name, "content": str(result)[:12000]})
+            # Preserve the OpenAI-compatible tool-message contract for the next
+            # ReAct round. Some gateways reject the older flattened form.
+            state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": response.content or "",
+                    "tool_calls": [
+                        {
+                            "id": call.call_id,
+                            "type": "function",
+                            "function": {"name": call.name, "arguments": json.dumps(call.arguments, ensure_ascii=False)},
+                        }
+                    ],
+                }
+            )
+            state.messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call.call_id,
+                    "name": call.name,
+                    "content": json.dumps(result, ensure_ascii=False, default=str)[:12000],
+                }
+            )
         else:
             state.termination_reason = "max_iterations"
             final_answer = self._evidence_summary(state.steps)

@@ -17,6 +17,9 @@ foreach ($project in $projects) {
     } else {
         pytest -q
     }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tests failed for $project with exit code $LASTEXITCODE."
+    }
     Pop-Location
 }
 
@@ -25,5 +28,8 @@ if (Test-Path (Join-Path $webDir "package.json")) {
     Write-Host "Building ScholarMind web workbench"
     Push-Location $webDir
     npm run build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Next.js production build failed with exit code $LASTEXITCODE."
+    }
     Pop-Location
 }

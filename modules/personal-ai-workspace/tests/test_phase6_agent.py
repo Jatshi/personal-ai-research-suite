@@ -13,12 +13,14 @@ from src.tools.tool_registry import ToolSpec
 class ScriptedLLM(BaseLLMClient):
     def __init__(self) -> None:
         self.calls = 0
+        self.messages: list[list[dict[str, Any]]] = []
 
     def generate(self, prompt: str, context: list[dict[str, Any]] | None = None) -> str:
         return "done"
 
     def complete_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMToolResponse:
         self.calls += 1
+        self.messages.append(messages)
         if self.calls == 1:
             return LLMToolResponse(tool_calls=[LLMToolCall("1", "list_files", {"path": "."})], finish_reason="tool_calls")
         return LLMToolResponse(content="safe completion")
@@ -43,10 +45,15 @@ def test_react_uses_native_tool_response(monkeypatch, tmp_path):
     config["app"]["data_dir"] = str(tmp_path / "data")
     config["app"]["workspace_dir"] = "./examples/sample_workspace"
     registry = build_registry(config)
-    monkeypatch.setattr("src.agents.react_agent.build_llm_client", lambda config: ScriptedLLM())
+    llm = ScriptedLLM()
+    monkeypatch.setattr("src.agents.react_agent.build_llm_client", lambda config: llm)
     result = ReActAgent(registry).run("inspect files", "test-session")
     assert result["termination_reason"] == "model_finished"
     assert result["steps"][0]["tool_name"] == "list_files"
+    tool_call = llm.messages[1][-2]["tool_calls"][0]
+    assert tool_call["type"] == "function"
+    assert tool_call["function"]["name"] == "list_files"
+    assert llm.messages[1][-1]["tool_call_id"] == "1"
 
 
 def test_memory_filters_secrets(tmp_path):

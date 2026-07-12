@@ -39,7 +39,9 @@ $env:OPENAI_BASE_URL = "https://provider.example/v1"
 1. Set `graphrag.backend: lightrag`, build a collection with `POST /graph/build`,
    then query it with `POST /graph/ask`.
 2. Run `python -m src.cli eval-rag --engine ragas --dataset ...` against a held-out
-   dataset with non-empty references.
+   dataset with non-empty references. RAGAS excludes `should_answer: false`
+   refusal cases because its answer-quality metrics are not refusal metrics;
+   evaluate them through the deterministic refusal-accuracy report instead.
 3. Run real-provider smoke tests for query rewriting, CRAG, ReAct tool calling,
    MCP bridge calls, and the browser workbench.
 

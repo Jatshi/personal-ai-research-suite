@@ -39,7 +39,8 @@ AI Workspace, Local MCP Toolkit, and the Next.js production build.
 
 ## External Provider Gate
 
-The following is deliberately not claimed as locally complete without credentials:
+The following was verified against a configured OpenAI-compatible provider on
+2026-07-12. Credentials remain in the ignored local environment only.
 
 ```powershell
 cd modules\personal-ai-workspace
@@ -48,7 +49,17 @@ $env:OPENAI_BASE_URL = "https://provider.example/v1"
 .\run_production_check.ps1 -CallApi
 ```
 
-With a real provider, also run a held-out RAGAS dataset and the live smoke cases
-for query rewriting, CRAG, ReAct native tool calling, and the MCP bridge. No API
-key is stored in this repository or required for the offline demo and regression
-suite.
+The verified live checks were:
+
+- `run_production_check.ps1 -CallApi`: OpenAI-compatible chat and embeddings.
+- Advanced RAG: HyDE, CRAG high-confidence routing, and a two-hop trace with
+  grounded citations.
+- ReAct: standard OpenAI tool-call history, one read-only tool invocation, and
+  a normal model-finished termination.
+- Official MCP SDK: tools, resources, prompts, and the local RAG bridge.
+- RAGAS: a real evaluator run using the workspace embedding adapter. RAGAS
+  answer metrics consume only answerable samples with non-empty references;
+  refusal cases remain covered by deterministic refusal accuracy.
+
+No API key is stored in this repository or required for the offline demo and
+regression suite.

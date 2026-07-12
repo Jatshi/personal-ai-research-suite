@@ -50,15 +50,15 @@ vector_store:
 
 embedding:
   backend: openai
-  model_name: text-embedding-3-small
-  dimension: 1536
+  model_name: text-embedding-v3
+  dimension: 1024
   api_key_env: OPENAI_API_KEY
   base_url_env: OPENAI_BASE_URL
   timeout_seconds: 60
 
 llm:
   backend: openai
-  model_name: gpt-4.1-mini
+  model_name: qwen-plus
   temperature: 0.2
   max_tokens: 1200
   api_key_env: OPENAI_API_KEY
