@@ -978,11 +978,11 @@ def grounded_rag_answer(question: str) -> str: ...
 def run_stdio_server(registry):
     from mcp.server.fastmcp import FastMCP
     mcp = FastMCP("scholarmind")
-    
+
     @mcp.tool()
     async def search_documents(query: str, top_k: int = 5):
         return registry.call("search_documents", {"query": query, "top_k": top_k})
-    
+
     mcp.run()
 ```
 
