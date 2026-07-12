@@ -97,9 +97,24 @@ reading SQLite files or configuration secrets directly. The API permits both
 `localhost:3000` and `127.0.0.1:3000` by default so the Next.js development server
 can consume REST and SSE endpoints without changing local configuration.
 
+## MCP Server
+
+`src/mcp/mcp_server.py` is an official Python MCP SDK `FastMCP` server, not a
+custom protocol wrapper. `python -m src.cli mcp-serve` runs the SDK stdio
+transport. It registers only the names in `mcp.exposed_tools`:
+`search_kb`, `ask_kb`, `list_docs`, `summarize_doc`, `write_note`, and
+`generate_weekly_report`.
+
+All MCP tool calls go through the shared `ToolRegistry`, so they retain JSONL
+tool logging, path restrictions, dry-run planning, and confirmation enforcement.
+The server also exposes collection/document/log resources and the
+`grounded-rag-answer`, `research-summary`, and `safe-note-writing` prompts.
+`mcp-legacy-serve` is a compatibility diagnostic command only and is never the
+production MCP entry point.
+
 ## API And UI
 
-- CLI, FastAPI, Streamlit, and MCP-like stdio all call the same tool/retrieval layers.
+- CLI, FastAPI, Streamlit, and official MCP stdio all call the same tool/retrieval layers.
 - FastAPI request bodies are Pydantic-validated.
 - API token protection can be enabled with `server.api_auth_enabled: true`.
 - `/dashboard/summary`, `/kb/docs/{doc_id}`, `/observability/logs`, and

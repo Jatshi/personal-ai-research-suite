@@ -1,6 +1,6 @@
 # personal-ai-workspace
 
-`personal-ai-workspace` is a local-first Personal AI OS. It combines a document knowledge base, RAG question answering, Agent tool calling, MCP-like tools, evaluation harness, daily/weekly report generation, reading collection management, observability, and safety controls.
+`personal-ai-workspace` is a local-first Personal AI OS. It combines a document knowledge base, RAG question answering, Agent tool calling, official MCP tools, evaluation harness, daily/weekly report generation, reading collection management, observability, and safety controls.
 
 It runs offline in mock mode for reproducible tests, and can switch to real OpenAI-compatible LLM and embedding APIs through `config.yaml` plus `.env`.
 
@@ -12,7 +12,7 @@ This project is not a single chatbot. It is a small AI operating layer around pe
 - RAG: answer with citations and refuse when evidence is insufficient.
 - Agent Harness: call tools with state, dry-run, confirmation, and logs.
 - LLM Tool Planner: use the configured LLM to propose safe JSON tool plans, with mock fallback for offline tests.
-- MCP-like Server: expose local abilities as structured tools.
+- Official MCP Server: expose local abilities as structured tools through the Python MCP SDK.
 - Evaluation: measure retrieval, citation, refusal, and confidence behavior.
 - Reports: generate Chinese daily and weekly reports from todo and evidence.
 - Reading RAG: import articles and create topic reading lists.
@@ -28,7 +28,7 @@ This project is not a single chatbot. It is a small AI operating layer around pe
 - Optional Chroma persistent vector store
 - Mock and OpenAI-compatible LLM clients
 - Mock and OpenAI-compatible embedding clients
-- MCP-like JSON stdio server
+- Official MCP SDK FastMCP stdio server
 - pytest
 
 SQLite stores metadata and chunks. The default lightweight vector backend stores embeddings in SQLite for offline tests; production mode can use Chroma for persistent semantic retrieval. Reindex after changing embedding models.
@@ -400,20 +400,23 @@ to use native OpenAI-compatible function calling. ReAct keeps all write operatio
 behind the existing dry-run and confirmation policy and can use opt-in SQLite
 long-term memory via `agent.enable_long_term_memory`.
 
-## MCP-like Server
+## Official MCP Server
 
 ```bash
 python -m src.cli mcp-serve
 ```
 
-The server accepts JSON lines:
+`mcp-serve` starts the official Python MCP SDK `FastMCP` stdio transport. It
+exposes the six tools declared in `mcp.exposed_tools`: `search_kb`, `ask_kb`,
+`list_docs`, `summarize_doc`, `write_note`, and `generate_weekly_report`. It
+also publishes collection/document/log resources and grounded-RAG,
+research-summary, and safe-note-writing prompts.
 
-```json
-{"method":"tools/list"}
-{"method":"tools/call","tool":"search_kb","arguments":{"query":"RAG 是什么？"}}
-```
+All calls use the shared `ToolRegistry`; `write_note` defaults to dry-run and
+requires explicit confirmation to execute.
 
-This JSON-stdio wrapper uses the same tool registry as CLI/API/UI. If you need the official MCP SDK transport, keep the registry and replace only the transport wrapper.
+For a temporary migration diagnostic only, run `python -m src.cli mcp-legacy-serve`.
+It is not the production MCP endpoint and should not be configured in MCP clients.
 
 ## Evaluation Harness
 
@@ -492,10 +495,10 @@ On Windows PowerShell:
 - Phase 3 supported: Tool Registry, tool calling, dry-run, confirmation, audit log, daily/weekly report agent.
 - Phase 3.1 supported: LLM-backed JSON tool planner with schema validation, high-risk dry-run enforcement, planner fallback, and agent run logs.
 - Phase 4 supported: Reading RAG path import, URL import, metadata extraction, search, reading list export.
-- Phase 5 supported: MCP-like tool schemas/client/server and FastAPI health/search/ask/agent.
+- Phase 5 supported: official MCP SDK FastMCP tools/resources/prompts and FastAPI health/search/ask/agent.
 - Phase 6 supported: JSONL observability, LLM call logs, error-friendly structured results, API backend doctor command.
 
-Current extension boundaries: Chroma/FAISS persistence, advanced cross-encoder reranker, official MCP SDK transport, production authentication, Docker, and richer API route coverage.
+Current extension boundaries: FAISS persistence, advanced cross-encoder reranker, production authentication, Docker, and richer API route coverage.
 
 ## GitHub Release Checklist
 
@@ -528,7 +531,7 @@ See `ROADMAP.md`.
 
 ## Resume Description
 
-Designed and implemented `personal-ai-workspace`, a local-first Personal AI OS prototype integrating document ingestion, RAG-based QA, agent tool calling, MCP-like tools, evaluation harness, observability, and sandboxed file operations. The system supports BM25/vector/hybrid retrieval, citation grounding, evidence-based refusal, dry-run and human confirmation for write tools, daily/weekly report generation, reading collection management, Streamlit UI, optional FastAPI endpoints, and pytest-based validation.
+Designed and implemented `personal-ai-workspace`, a local-first Personal AI OS integrating document ingestion, RAG-based QA, agent tool calling, official MCP SDK tools/resources/prompts, evaluation, observability, and sandboxed file operations. The system supports BM25/vector/hybrid retrieval, citation grounding, evidence-based refusal, dry-run and human confirmation for write tools, daily/weekly report generation, reading collection management, Streamlit UI, FastAPI endpoints, and pytest-based validation.
 
 ## Interview Talking Points
 

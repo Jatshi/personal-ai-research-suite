@@ -9,7 +9,7 @@ from src.agents.personal_assistant_agent import PersonalAssistantAgent
 from src.config.config_loader import load_config
 from src.evaluation.agent_evaluator import eval_agent
 from src.evaluation.rag_evaluator import eval_rag
-from src.mcp.mcp_server import serve_stdio
+from src.mcp.mcp_server import serve_legacy_json_stdio, serve_stdio
 from src.observability.trace_logger import JsonlLogger
 from src.reading.article_extractor import import_reading_path, import_reading_url
 from src.reading.reading_tools import reading_list_markdown, reading_search
@@ -101,6 +101,7 @@ def main() -> None:
     p.add_argument("--dataset")
     p.add_argument("--output")
     sub.add_parser("mcp-serve")
+    sub.add_parser("mcp-legacy-serve", help="Compatibility-only JSON-lines MCP diagnostic server.")
 
     p = sub.add_parser("mcp-client")
     p.add_argument("--tool", required=True)
@@ -191,6 +192,8 @@ def main() -> None:
         print_json(eval_agent(config, args.dataset, args.output))
     elif args.command == "mcp-serve":
         serve_stdio(config)
+    elif args.command == "mcp-legacy-serve":
+        serve_legacy_json_stdio(config)
     elif args.command == "mcp-client":
         print_json(registry.call(args.tool, parse_args_json(args.args)))
     elif args.command == "doctor-llm":
