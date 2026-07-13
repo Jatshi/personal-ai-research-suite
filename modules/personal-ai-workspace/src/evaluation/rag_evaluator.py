@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,9 @@ def eval_rag(config: dict[str, Any], dataset: str, output: str | None = None) ->
         if not line.strip():
             continue
         item = json.loads(line)
+        started = time.perf_counter()
         answer = ask_kb_tool(config, {"query": item["question"], "collection": item.get("collection"), "top_k": 5})
+        latency_ms = round((time.perf_counter() - started) * 1000, 3)
         evidence = answer.get("evidence", [])
         expected_sources = set(item.get("expected_sources", []))
         got_sources = {e.get("file_name") for e in evidence}
@@ -30,6 +33,7 @@ def eval_rag(config: dict[str, Any], dataset: str, output: str | None = None) ->
                 "question": item["question"],
                 "should_answer": item.get("should_answer", True),
                 "source_hit": not expected_sources or bool(expected_sources & got_sources),
+                "expected_source_recall": len(expected_sources & got_sources) / max(len(expected_sources), 1) if item.get("should_answer", True) else 1.0,
                 "citations": answer.get("citations", []),
                 "refused": NO_EVIDENCE in answer.get("answer", ""),
                 "keyword_coverage": len(expected_keywords & ans_tokens) / max(len(expected_keywords), 1),
@@ -38,6 +42,7 @@ def eval_rag(config: dict[str, Any], dataset: str, output: str | None = None) ->
                 "actual_route": route,
                 "compression_ratio": float(compression.get("after_chars", 0)) / max(float(compression.get("before_chars", 0)), 1.0),
                 "citation_retained": bool(answer.get("citations")) if evidence else True,
+                "latency_ms": latency_ms,
             }
         )
     metrics = compute_rag_metrics(records)

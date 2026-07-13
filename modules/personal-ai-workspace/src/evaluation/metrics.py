@@ -8,6 +8,7 @@ def compute_rag_metrics(records: list[dict[str, Any]]) -> dict[str, float]:
     return {
         "retrieval_hit_rate": sum(bool(r.get("source_hit")) for r in records) / total,
         "source_accuracy": sum(bool(r.get("source_hit")) for r in records) / total,
+        "expected_source_recall": sum(float(r.get("expected_source_recall", 0.0)) for r in records if r.get("should_answer", True)) / max(sum(bool(r.get("should_answer", True)) for r in records), 1),
         "citation_presence": sum(bool(r.get("citations")) for r in records if r.get("should_answer", True)) / max(sum(bool(r.get("should_answer", True)) for r in records), 1),
         "refusal_accuracy": sum(bool(r.get("refused")) == (not r.get("should_answer", True)) for r in records) / total,
         "answer_keyword_coverage": sum(float(r.get("keyword_coverage", 0.0)) for r in records) / total,

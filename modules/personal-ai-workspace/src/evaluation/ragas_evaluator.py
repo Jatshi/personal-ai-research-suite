@@ -88,7 +88,7 @@ def eval_ragas(config: dict[str, Any], dataset: str) -> dict[str, Any]:
         if item.get("should_answer") is False:
             skipped_refusal_cases += 1
             continue
-        reference = item.get("reference") or ""
+        reference = item.get("reference") or item.get("reference_answer") or ""
         if reference.strip():
             reference_count += 1
         response = ask_kb_tool(config, {"query": item["question"], "collection": item.get("collection"), "top_k": 5})

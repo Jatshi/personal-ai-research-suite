@@ -343,6 +343,23 @@ python -m src.cli eval-rag --engine ragas --dataset ./examples/sample_eval/phase
 The first command is offline-capable. RAGAS requires the production extra and a
 configured OpenAI-compatible chat and embedding API.
 
+### Benchmark Suite
+
+The reproducible benchmark suite includes 12 public AI paper fact cards and 50
+English questions: 15 simple, 15 cross-document comparison, 10 multi-hop, and
+10 out-of-scope refusal cases. It compares Base RAG, CRAG, HyDE query rewrite,
+and Hybrid + GraphRAG. The default corpus is safe to publish; replace it with a
+reviewed local paper directory before making domain-specific claims.
+
+```powershell
+python examples/run_benchmark.py
+python examples/generate_benchmark_report.py --input data/exports/benchmark/benchmark_results.json --output docs/BENCHMARK_REPORT.md
+
+# Real RAGAS run with checkpointing; rerun after an interruption with --resume.
+python examples/run_benchmark.py --config config.production.yaml --ragas --output data/exports/benchmark/benchmark_results_real.json
+python examples/run_benchmark.py --config config.production.yaml --ragas --resume --output data/exports/benchmark/benchmark_results_real.json
+```
+
 ## Next.js Workbench
 
 The product UI is in `../../apps/web` and runs alongside Streamlit:
